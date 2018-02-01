@@ -47,9 +47,10 @@ runTimeModifiable true;
 
 adjustTimeStep  no;
 
+// Compile with support for dynamic dt
 maxCo           0.2;
 
-maxDeltaT       1;
+maxDeltaT       0.1;
 
 
 // ************************************************************************* //

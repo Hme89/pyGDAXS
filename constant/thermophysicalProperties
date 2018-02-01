@@ -18,16 +18,24 @@ FoamFile
 thermoType
 {
     type            heheuPsiThermo;
-    mixture         homogeneousMixture;
+    // mixture         homogeneousMixture;
+    mixture         inhomogeneousMixture;
+    // mixture         veryInhomogeneousMixture;
     transport       const;
+    // transport       sutherland;
     thermo          janaf;
     equationOfState perfectGas;
+    // equationOfState linear, boussinesq, penngRobinson... ;
     specie          specie;
     energy          absoluteEnthalpy;
 }
 
 stoichiometricAirFuelMassRatio
-    stoichiometricAirFuelMassRatio [0 0 0 0 0 0 0] 15.675;
+    // stoichiometricAirFuelMassRatio [0 0 0 0 0 0 0] 15.675; // Propane?
+    stoichiometricAirFuelMassRatio [0 0 0 0 0 0 0] 15.675; // Hydrogen
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 reactants
 {

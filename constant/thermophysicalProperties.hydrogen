@@ -18,7 +18,9 @@ FoamFile
 thermoType
 {
     type            heheuPsiThermo;
-    mixture         homogeneousMixture;
+    // mixture         homogeneousMixture;
+    // mixture         inhomogeneousMixture;
+    // mixture         veryInhomogeneousMixture;
     transport       sutherland;
     thermo          janaf;
     equationOfState perfectGas;
