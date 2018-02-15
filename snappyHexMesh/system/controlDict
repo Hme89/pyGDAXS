@@ -1,0 +1,38 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     snappyHexMesh;
+
+startFrom       latestTime;
+
+stopAt          endTime;
+
+endTime         1;
+
+deltaT          1;
+
+writeInterval   1;
+
+writeFormat     binary;
+
+writeCompression off;
+
+timeFormat      general;
+
+runTimeModifiable true;
+
+// ************************************************************************* //

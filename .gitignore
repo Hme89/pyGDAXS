@@ -1,7 +1,10 @@
-processor*
-[0-9]*
-!0.[a-x]*
-constant/polyMesh/*
-constant/extendedFeatureEdgeMesh/*
-constant/triSurface/*.eMesh
+__*
 log.*
+[0-9]*
+!0
+processor*
+*/polyMesh
+*/extendedFeatureEdgeMesh
+triSurface/*.eMesh
+tmp
+timeData/*
