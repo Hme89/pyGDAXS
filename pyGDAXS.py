@@ -1,14 +1,16 @@
-import subprocess, shutil, time, sys, os
+#!/bin/python3
+import subprocess, argparse, shutil, time, sys, os
 from math import ceil
 
+# Configs
 ################################################################################
-
 sourcefile_path = "/opt/OpenFOAM/OpenFOAM-5.0/etc/bashrc"
 logging = True
 cores = 4
 
-################################################################################
 
+# Case setup
+################################################################################
 def run_case():
 
     # Initial Setup
@@ -18,21 +20,21 @@ def run_case():
 
 
     # Meshing with SnappyHexMesh
-    shutil.copytree("snappyHexMesh/constant", "timeData")
-    shutil.copytree("snappyHexMesh/system", "timeData")
+    shutil.copytree("snappyHexMesh/constant", "timeData/constant")
+    shutil.copytree("snappyHexMesh/system", "timeData/system")
     foam_call("blockMesh")
     foam_call("decomposePar")
     foam_call("snappyHexMesh", parallel=True)
     # reconstructParMesh ?
-    shutil.move("timeData/constant/ployMesh", "tmp")
+    shutil.move("timeData/constant/ployMesh", "tmp/ployMesh")
     shutil.rmtree("timeData/constant")
     shutil.rmtree("timeData/system")
 
 
     # Simulate gas dispersion
-    shutil.copytree("rhoReactingBuoyantFoam/constant", "timeData")
-    shutil.copytree("rhoReactingBuoyantFoam/system", "timeData")
-    shutil.move("tmp/polymesh", "timeData/constant")
+    shutil.copytree("rhoReactingBuoyantFoam/constant", "timeData/constant")
+    shutil.copytree("rhoReactingBuoyantFoam/system", "timeData/system")
+    shutil.move("tmp/polyMesh", "timeData/constant/polyMesh")
     foam_call("rhoReactingBuoyantFoam", parallel=True)
     shutil.rmtree("timeData/constant")
     shutil.rmtree("timeData/system")
@@ -40,8 +42,8 @@ def run_case():
 
     # Simulate gas combustion
     cur, nxt = get_timestamps()
-    shutil.copytree("XiFoam/constant", "timeData")
-    shutil.copytree("XiFoam/system", "timeData")
+    shutil.copytree("XiFoam/constant", "timeData/constants")
+    shutil.copytree("XiFoam/system", "timeData/system")
     shutil.copytree("XiFoam/0", "timeData/{}".format(nxt))
     shutil.copy("{}/H2".format(cur), "{}/ft".format(nxt))
     change_line("{}/ft".format(nxt), "object", "ft")
@@ -54,11 +56,11 @@ def run_case():
     shutil.rmtree("tmp")
 
 
+# Case functions
 ################################################################################
-
 def foam_call(cmd, parallel=False):
     start_time = time.time()
-    fout = open("log.{}".format(arg), "w")
+    fout = open("log.{}".format(cmd), "w")
     if parallel: cmd = "mpirun -np {} {} -parallel".format(cores, cmd)
     p = subprocess.Popen(
         "cd {} && source {} && {}".format("timeData", sourcefile_path, cmd),
@@ -67,11 +69,11 @@ def foam_call(cmd, parallel=False):
         stdout = fout if logging else None,
         stderr = fout if logging else None,
     )
-    print_log("Running {0}, continous output in {0}.log".format(arg))
+    print_log("Running {0}, continous output in {0}.log".format(cmd))
     p.wait()
     m, s = divmod(time.time() - start_time, 60)
     h, m = divmod(m, 60)
-    print_log("Finished {} in {:.0f}h {:.0f}m {:.0f}s".format(arg, h, m, s))
+    print_log("Finished {} in {:.0f}h {:.0f}m {:.0f}s".format(cmd, h, m, s))
     fout.close()
     return p.returncode
 
@@ -81,18 +83,21 @@ def print_log(line):
         with open("log.pyGDAXS", "a") as logfile:
             logfile.write(line)
             logfile.write("\n")
-    print(arg)
+    print(line)
 
 
-def clean(folder):
+def clean(folder, create_new=True):
     if os.path.isdir(folder):
-        os.rmtree(folder)
-        os.mkdir(folder)
+        shutil.rmtree(folder)
+        if create_new:
+            os.mkdir(folder)
     else:
-        os.mkdir(folder)
+        if create_new:
+            os.mkdir(folder)
 
 
 def change_line(path, key, value):
+    "Changes the value in the given file to the specifies value"
     new_content = []
     with open(path, "r") as infile:
         lines = infile.readlines()
@@ -108,8 +113,9 @@ def change_line(path, key, value):
 
 
 def get_timestamps():
+    "Sets next timestep to whole number + 1 from previous timestep"
     latest_time = -1
-    for folder in os.listdir(path):How do you round UP a number in Python?
+    for folder in os.listdir(path):
         try:
             float(s)
             if s > latest_time:
@@ -120,16 +126,44 @@ def get_timestamps():
 
 
 def set_cores():
+    "Sets correct core count in all decomposeParDict's"
     change_line("snappyHexMesh/system/decomposeParDict", "numberOfSubdomains", cores)
     change_line("rhoReactingBuoyantFoam/system/decomposeParDict", "numberOfSubdomains", cores)
     change_line("XiFoam/system/decomposeParDict", "numberOfSubdomains", cores)
 
 
 def copy_fields(cur, nxt):
+    "Copies common fields when changing solver"
     for field in ["alphat", "epsilon", "k", "nut", "p", "p_rgh", "T", "U"]:
         shutil.move("{}/{}".format(cur, field), "{}/{}".format(nxt, field))
 
 
 
 if __name__ == "__main__":
-    run_case()
+    parser = argparse.ArgumentParser(description="pyGDAXS: Gas Dispersion And Xplosion Solver")
+    parser.add_argument("--run", action="store_true",
+                        default=False, help="Run the complete simulation")
+
+    parser.add_argument("--clean", action="store_true",
+                        default=False, help="Run the complete simulation")
+
+    args = parser.parse_args()
+
+    if args.clean:
+        print("Cleaning logfiles and solutions...")
+        clean("timeData", create_new=False)
+        clean("tmp", create_new=False)
+        del_files = ["log.", ".eMesh"]
+        del_folders = ["polyMesh", "extendedFeatureEdgeMesh"]
+        for dirpath, dnames, fnames in os.walk("./"):
+            for f in fnames:
+                for df in del_files:
+                    if df in f:
+                        os.remove(os.path.join(dirpath,f))
+            for d in dnames:
+                for df in del_folders:
+                    if df in d:
+                        shutil.remdir(os.path.join(dirpath,d))
+
+    if args.run:
+        run_case()
