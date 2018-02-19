@@ -149,10 +149,10 @@ castellatedMeshControls
 
     // After refinement patches get added for all refinementSurfaces and
     // all cells intersecting the surfaces get put into these patches. The
-    // section reachable from the locationInMesh is kept.
+    // section reachable from the location In Mesh is kept.
     // NOTE: This point should never be on a face, always inside a cell, even
     // after refinement.
-    locationInMesh (-299 -149 1);
+    locationInMesh (0.1 0.1 0.1);
 
 
     // Whether any faceZones (as specified in the refinementSurfaces)
@@ -190,10 +190,10 @@ snapControls
 
         //- Detect (geometric only) features by sampling the surface
         //  (default=false).
-        implicitFeatureSnap false;
+        implicitFeatureSnap true;
 
         //- Use castellatedMeshControls::features (default = true)
-        explicitFeatureSnap true;
+        explicitFeatureSnap false;
 
         //- Detect points on multiple surfaces (only for explicitFeatureSnap)
         multiRegionFeatureSnap false;

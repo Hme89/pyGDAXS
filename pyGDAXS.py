@@ -2,43 +2,55 @@
 import subprocess, argparse, shutil, time, sys, os
 from math import ceil
 
-# Configs
+# Config parameters. Time in seconds
 ################################################################################
 sourcefile_path = "/opt/OpenFOAM/OpenFOAM-5.0/etc/bashrc"
+location_in_mesh = "(0.1 0.1 0.1)" # C++ syntax
+dispersion_time = 15
+combustion_time = 15
 logging = True
-cores = 4
+cores = 2
 
 
 # Case setup
 ################################################################################
-def run_case():
+def run_case(create_mesh):
 
     # Initial Setup
     set_cores()
-    clean("timeData")
-    clean("tmp")
+    clean("timeData", create_new=True)
 
+    if create_mesh:
+        clean("mesh", create_new=True)
+        # Meshing with SnappyHexMesh
+        shutil.copytree("snappyHexMesh/constant", "timeData/constant")
+        shutil.copytree("snappyHexMesh/system", "timeData/system")
+        change_line("timeData/system/snappyHexMeshDict", "locationInMesh", location_in_mesh)
+        foam_call("surfaceFeatureExtract")
+        foam_call("blockMesh")
+        foam_call("decomposePar")
+        #TODO fix paralell mesh copy
+        foam_call("snappyHexMesh", parallel=True)
+        foam_call("reconstructParMesh")
+        cur, nxt = get_timestamps()
+        shutil.move("timeData/{}/polyMesh".format(cur), "mesh/polyMesh")
+        shutil.rmtree("timeData/constant")
+        shutil.rmtree("timeData/system")
 
-    # Meshing with SnappyHexMesh
-    shutil.copytree("snappyHexMesh/constant", "timeData/constant")
-    shutil.copytree("snappyHexMesh/system", "timeData/system")
-    foam_call("blockMesh")
-    foam_call("decomposePar")
-    foam_call("snappyHexMesh", parallel=True)
-    # reconstructParMesh ?
-    shutil.move("timeData/constant/ployMesh", "tmp/ployMesh")
-    shutil.rmtree("timeData/constant")
-    shutil.rmtree("timeData/system")
-
+    input("Gas?")
 
     # Simulate gas dispersion
+    cur, nxt = get_timestamps()
+    shutil.copytree("rhoReactingBuoyantFoam/0", "timeData/{}".format(nxt))
     shutil.copytree("rhoReactingBuoyantFoam/constant", "timeData/constant")
     shutil.copytree("rhoReactingBuoyantFoam/system", "timeData/system")
-    shutil.move("tmp/polyMesh", "timeData/constant/polyMesh")
-    foam_call("rhoReactingBuoyantFoam", parallel=True)
+
+    shutil.copytree("mesh/polyMesh", "timeData/constant/polyMesh")
+    foam_call("rhoReactingBuoyantFoam", parallel=False)
     shutil.rmtree("timeData/constant")
     shutil.rmtree("timeData/system")
 
+    input("Xplosionz????")
 
     # Simulate gas combustion
     cur, nxt = get_timestamps()
@@ -46,21 +58,22 @@ def run_case():
     shutil.copytree("XiFoam/system", "timeData/system")
     shutil.copytree("XiFoam/0", "timeData/{}".format(nxt))
     shutil.copy("{}/H2".format(cur), "{}/ft".format(nxt))
+    # FoamConvert to ASCII before change_line
     change_line("{}/ft".format(nxt), "object", "ft")
     copy_fields(cur, nxt)
-    foam_call("XiFoam", parallel=True)
+    foam_call("XiFoam", parallel=False)
 
 
     # Reconstruct timesteps
     foam_call("reconstructPar")
-    shutil.rmtree("tmp")
 
 
 # Case functions
 ################################################################################
 def foam_call(cmd, parallel=False):
+    prog = cmd
     start_time = time.time()
-    fout = open("log.{}".format(cmd), "w")
+    fout = open("log.{}".format(prog), "w")
     if parallel: cmd = "mpirun -np {} {} -parallel".format(cores, cmd)
     p = subprocess.Popen(
         "cd {} && source {} && {}".format("timeData", sourcefile_path, cmd),
@@ -69,13 +82,15 @@ def foam_call(cmd, parallel=False):
         stdout = fout if logging else None,
         stderr = fout if logging else None,
     )
-    print_log("Running {0}, continous output in {0}.log".format(cmd))
+    print_log("Running {0}, continous output in {0}.log".format(prog))
     p.wait()
     m, s = divmod(time.time() - start_time, 60)
     h, m = divmod(m, 60)
-    print_log("Finished {} in {:.0f}h {:.0f}m {:.0f}s".format(cmd, h, m, s))
+    print_log("Finished {} in {:.0f}h {:.0f}m {:.0f}s".format(prog, h, m, s))
     fout.close()
-    return p.returncode
+    if p.returncode != 0:
+        print_log("Error while executing {}, check logs...".format(prog))
+        sys.exit(1)
 
 
 def print_log(line):
@@ -114,15 +129,14 @@ def change_line(path, key, value):
 
 def get_timestamps():
     "Sets next timestep to whole number + 1 from previous timestep"
-    latest_time = -1
-    for folder in os.listdir(path):
+    latest_time = "-1"
+    for folder in os.listdir("timeData"):
         try:
-            float(s)
-            if s > latest_time:
-                latest_time = s
+            if float(folder) > float(latest_time):
+                latest_time = folder
         except ValueError:
             pass
-    return latest_time, int(ceil(latest_time + 1))
+    return latest_time, int(ceil(float(latest_time) + 1))
 
 
 def set_cores():
@@ -141,29 +155,44 @@ def copy_fields(cur, nxt):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="pyGDAXS: Gas Dispersion And Xplosion Solver")
-    parser.add_argument("--run", action="store_true",
-                        default=False, help="Run the complete simulation")
-
-    parser.add_argument("--clean", action="store_true",
-                        default=False, help="Run the complete simulation")
+    parser.add_argument("-a", action="store_true",
+        default=False, help="Run all: Clean, mesh and simulate")
+    parser.add_argument("-s", action="store_true",
+        default=False, help="Simulate dispersion and combustion")
+    parser.add_argument("-c", action="store_true",
+        default=False, help="Clean mesh and solution folders and logs")
+    parser.add_argument("-m", action="store_true",
+        default=False, help="Generate new mesh. Not necessary for each new run")
 
     args = parser.parse_args()
+    if args.a:
+        args.c = True
+        args.s = True
+        args.m = True
 
-    if args.clean:
+
+    if args.c:
         print("Cleaning logfiles and solutions...")
         clean("timeData", create_new=False)
-        clean("tmp", create_new=False)
+        clean("mesh", create_new=False)
         del_files = ["log.", ".eMesh"]
-        del_folders = ["polyMesh", "extendedFeatureEdgeMesh"]
+        del_folders = ["polyMesh", "extendedFeatureEdgeMesh", "processor"]
         for dirpath, dnames, fnames in os.walk("./"):
             for f in fnames:
                 for df in del_files:
                     if df in f:
                         os.remove(os.path.join(dirpath,f))
             for d in dnames:
-                for df in del_folders:
-                    if df in d:
-                        shutil.remdir(os.path.join(dirpath,d))
+                if ".git" not in dirpath and d != "0":
+                    for df in del_folders:
+                        if df in d:
+                            shutil.rmtree(os.path.join(dirpath,d))
+                    try:
+                        f = float(d)
+                        shutil.rmtree(os.path.join(dirpath,d))
+                    except ValueError:
+                        pass
 
-    if args.run:
-        run_case()
+
+    if args.s:
+        run_case(args.m)

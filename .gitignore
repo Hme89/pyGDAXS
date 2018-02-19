@@ -8,3 +8,4 @@ processor*
 */constant/triSurface/*.eMesh
 tmp
 timeData/*
+geometries/*
