@@ -5,9 +5,9 @@ from math import ceil
 # Config parameters. Time in seconds
 ################################################################################
 sourcefile_path = "/opt/OpenFOAM/OpenFOAM-5.0/etc/bashrc"
-location_in_mesh = "(0.1 0.1 0.1)" # C++ syntax
-dispersion_time = 15
-combustion_time = 15
+ignition_location = "(0.7 1.8 1.0)" # C++ syntax
+dispersion_time = 10
+combustion_time = 1
 logging = True
 cores = 2
 
@@ -25,7 +25,7 @@ def run_case(create_mesh):
         # Meshing with SnappyHexMesh
         shutil.copytree("snappyHexMesh/constant", "timeData/constant")
         shutil.copytree("snappyHexMesh/system", "timeData/system")
-        change_line("timeData/system/snappyHexMeshDict", "locationInMesh", location_in_mesh)
+        change_line("timeData/system/snappyHexMeshDict", "locationInMesh", ignition_location)
         foam_call("surfaceFeatureExtract")
         foam_call("blockMesh")
         # foam_call("decomposePar")
@@ -37,7 +37,6 @@ def run_case(create_mesh):
         shutil.rmtree("timeData/constant")
         shutil.rmtree("timeData/system")
 
-    # input("Gas?")
 
     # Simulate gas dispersion
     cur, nxt = get_timestamps()
@@ -47,13 +46,14 @@ def run_case(create_mesh):
     shutil.copy("timeData/{}/cellLevel".format(cur), "timeData/{}/cellLevel".format(nxt))
     shutil.copytree("rhoReactingBuoyantFoam/constant", "timeData/constant")
     shutil.copytree("rhoReactingBuoyantFoam/system", "timeData/system")
+    change_line("timeData/system/controlDict", "endTime", dispersion_time + 2)
+
 
     # shutil.copytree("mesh/polyMesh", "timeData/constant/polyMesh")
     foam_call("rhoReactingBuoyantFoam", parallel=False)
     shutil.rmtree("timeData/system")
     shutil.rmtree("timeData/constant")
 
-    # input("Xplosionz????")
 
     # Simulate gas combustion
     cur, nxt = get_timestamps()
@@ -61,8 +61,14 @@ def run_case(create_mesh):
     shutil.copytree("XiFoam/system", "timeData/system")
     shutil.copytree("XiFoam/0", "timeData/{}".format(nxt))
     shutil.copy("timeData/{}/H2".format(cur), "timeData/{}/ft".format(nxt))
+    shutil.copy("timeData/{}/p_rgh".format(cur), "timeData/{}/p".format(nxt))
+    shutil.copy("timeData/{}/T".format(cur), "timeData/{}/Tu".format(nxt))
     # FoamConvert to ASCII before change_line
     change_line("timeData/{}/ft".format(nxt), "object", "ft")
+    change_line("timeData/{}/Tu".format(nxt), "object", "Tu")
+    change_line("timeData/{}/p".format(nxt), "object", "p")
+    change_line("timeData/constant/combustionProperties", "    location", ignition_location)
+    change_line("timeData/system/controlDict", "endTime  ", combustion_time+dispersion_time+3)
     copy_fields(cur, nxt)
     foam_call("XiFoam", parallel=False)
 
@@ -85,7 +91,7 @@ def foam_call(cmd, parallel=False):
         stdout = fout if logging else None,
         stderr = fout if logging else None,
     )
-    print_log("Running {0}, continous output in {0}.log".format(prog))
+    print_log("Running {0}, output in {0}.log".format(prog))
     p.wait()
     m, s = divmod(time.time() - start_time, 60)
     h, m = divmod(m, 60)
@@ -151,7 +157,7 @@ def set_cores():
 
 def copy_fields(cur, nxt):
     "Copies common fields when changing solver"
-    for field in ["alphat", "epsilon", "k", "nut", "p", "p_rgh", "T", "U"]:
+    for field in ["alphat", "epsilon", "k", "nut", "T", "U"]:
         shutil.copy("timeData/{}/{}".format(cur, field), "timeData/{}/{}".format(nxt, field))
 
 

@@ -65,7 +65,7 @@ RaviPetersenCoeffs
     }
 }
 
-ignite          no;
+ignite          yes;
 
 ignitionSites
 (
@@ -73,7 +73,8 @@ ignitionSites
         location        (0 0 0.0005);
         diameter        0.003;
         start           0;
-        duration        0.003;
+        // duration        0.003;
+        duration        1e15;
         strength        2;
     }
 );
