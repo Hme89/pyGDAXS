@@ -28,44 +28,47 @@ def run_case(create_mesh):
         change_line("timeData/system/snappyHexMeshDict", "locationInMesh", location_in_mesh)
         foam_call("surfaceFeatureExtract")
         foam_call("blockMesh")
-        foam_call("decomposePar")
+        # foam_call("decomposePar")
         #TODO fix paralell mesh copy
-        foam_call("snappyHexMesh", parallel=True)
-        foam_call("reconstructParMesh")
+        foam_call("snappyHexMesh", parallel=False)
+        # foam_call("reconstructParMesh")
         cur, nxt = get_timestamps()
-        shutil.move("timeData/{}/polyMesh".format(cur), "mesh/polyMesh")
+        # shutil.copytree("timeData/{}/polyMesh".format(cur), "mesh/polyMesh")
         shutil.rmtree("timeData/constant")
         shutil.rmtree("timeData/system")
 
-    input("Gas?")
+    # input("Gas?")
 
     # Simulate gas dispersion
     cur, nxt = get_timestamps()
     shutil.copytree("rhoReactingBuoyantFoam/0", "timeData/{}".format(nxt))
+    shutil.copytree("timeData/{}/polyMesh".format(cur), "timeData/{}/polyMesh".format(nxt))
+    shutil.copy("timeData/{}/pointLevel".format(cur), "timeData/{}/pointLevel".format(nxt))
+    shutil.copy("timeData/{}/cellLevel".format(cur), "timeData/{}/cellLevel".format(nxt))
     shutil.copytree("rhoReactingBuoyantFoam/constant", "timeData/constant")
     shutil.copytree("rhoReactingBuoyantFoam/system", "timeData/system")
 
-    shutil.copytree("mesh/polyMesh", "timeData/constant/polyMesh")
+    # shutil.copytree("mesh/polyMesh", "timeData/constant/polyMesh")
     foam_call("rhoReactingBuoyantFoam", parallel=False)
-    shutil.rmtree("timeData/constant")
     shutil.rmtree("timeData/system")
+    shutil.rmtree("timeData/constant")
 
-    input("Xplosionz????")
+    # input("Xplosionz????")
 
     # Simulate gas combustion
     cur, nxt = get_timestamps()
-    shutil.copytree("XiFoam/constant", "timeData/constants")
+    shutil.copytree("XiFoam/constant", "timeData/constant")
     shutil.copytree("XiFoam/system", "timeData/system")
     shutil.copytree("XiFoam/0", "timeData/{}".format(nxt))
-    shutil.copy("{}/H2".format(cur), "{}/ft".format(nxt))
+    shutil.copy("timeData/{}/H2".format(cur), "timeData/{}/ft".format(nxt))
     # FoamConvert to ASCII before change_line
-    change_line("{}/ft".format(nxt), "object", "ft")
+    change_line("timeData/{}/ft".format(nxt), "object", "ft")
     copy_fields(cur, nxt)
     foam_call("XiFoam", parallel=False)
 
 
     # Reconstruct timesteps
-    foam_call("reconstructPar")
+    # foam_call("reconstructPar")
 
 
 # Case functions
@@ -149,7 +152,7 @@ def set_cores():
 def copy_fields(cur, nxt):
     "Copies common fields when changing solver"
     for field in ["alphat", "epsilon", "k", "nut", "p", "p_rgh", "T", "U"]:
-        shutil.move("{}/{}".format(cur, field), "{}/{}".format(nxt, field))
+        shutil.copy("timeData/{}/{}".format(cur, field), "timeData/{}/{}".format(nxt, field))
 
 
 

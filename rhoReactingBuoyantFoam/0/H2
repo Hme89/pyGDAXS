@@ -38,6 +38,11 @@ boundaryField
     type        zeroGradient;
   }
 
+  container
+  {
+    type        zeroGradient;
+  }
+
 }
 
 // ************************************************************************* //

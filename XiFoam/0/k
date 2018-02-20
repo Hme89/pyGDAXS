@@ -35,6 +35,11 @@ boundaryField
     type          kqRWallFunction;
     value         $internalField;
   }
+  container
+  {
+    type          kqRWallFunction;
+    value         $internalField;
+  }
 }
 
 // ************************************************************************* //

@@ -27,7 +27,7 @@ boundaryField
   {
     type        fixedValue;
     // value       $internalField;
-    value       uniform (0.5 0 0);
+    value       uniform (0.2 0 0);
   }
 
   outlet
@@ -39,6 +39,12 @@ boundaryField
   {
     type        noSlip;
   }
+  
+  container
+  {
+    type        noSlip;
+  }
+
 
 }
 

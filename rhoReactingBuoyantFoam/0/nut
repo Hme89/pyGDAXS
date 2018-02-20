@@ -39,6 +39,12 @@ boundaryField
     value       $internalField;
   }
 
+  container
+  {
+    type        nutkWallFunction;
+    value       $internalField;
+  }
+
 }
 
 // ************************************************************************* //

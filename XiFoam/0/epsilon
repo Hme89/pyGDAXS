@@ -35,6 +35,12 @@ boundaryField
     type          epsilonWallFunction;
     value         $internalField;
   }
+  container
+  {
+    type          epsilonWallFunction;
+    value         $internalField;
+  }
+
 }
 
 // ************************************************************************* //

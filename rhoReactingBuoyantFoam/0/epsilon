@@ -21,7 +21,7 @@ internalField   uniform 300;
 
 boundaryField
 {
-  
+
   inlet
   {
     type        fixedValue;
@@ -39,6 +39,11 @@ boundaryField
     value       $internalField;
   }
 
+  container
+  {
+    type        epsilonWallFunction;
+    value       $internalField;
+  }
 }
 
 // ************************************************************************* //
