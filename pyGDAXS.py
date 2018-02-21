@@ -30,7 +30,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         foam_call("surfaceFeatureExtract")
         foam_call("blockMesh")
         foam_call("decomposePar")
-        foam_call("snappyHexMesh -overwrite", parallel=True)
+        foam_call("snappyHexMesh", parallel=True)
         foam_call("reconstructParMesh")
         shutil.copytree("timeData/constant/polyMesh", "save/polyMesh")
 
@@ -42,7 +42,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         shutil.copytree("rhoReactingBuoyantFoam/system", "timeData/system")
         shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
         shutil.copytree("rhoReactingBuoyantFoam/0", "timeData/0")
-        change_line("timeData/system/controlDict", "endTime  ", dispersion_time + 2)
+        change_line("timeData/system/controlDict", "endTime  ", dispersion_time)
 
         foam_call("decomposePar")
         foam_call("rhoReactingBuoyantFoam", parallel=True)
@@ -58,7 +58,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         shutil.copytree("XiFoam/constant", "timeData/constant")
         shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
         change_line("timeData/constant/combustionProperties", "    location", ignition_location)
-        change_line("timeData/system/controlDict", "endTime  ", combustion_time+dispersion_time+3)
+        change_line("timeData/system/controlDict", "endTime  ", combustion_time)
         copy_field("T", "Tu")
         copy_field("H2", "ft")
         copy_field("p_rgh", "p")
@@ -73,7 +73,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
 # Case functions
 ################################################################################
 def foam_call(cmd, parallel=False):
-    prog = cmd
+    prog = cmd.split(" ")[0]
     start_time = time.time()
     fout = open("log.{}".format(prog), "w")
     if parallel: cmd = "mpirun -np {} {} -parallel".format(cores, cmd)
@@ -84,7 +84,7 @@ def foam_call(cmd, parallel=False):
         stdout = fout if logging else None,
         stderr = fout if logging else None,
     )
-    print_log("Running {0}, output in {0}.log".format(prog))
+    print("Running  {}".format(prog), end="\r")
     p.wait()
     m, s = divmod(time.time() - start_time, 60)
     h, m = divmod(m, 60)
@@ -92,7 +92,7 @@ def foam_call(cmd, parallel=False):
     if p.returncode != 0:
         print_log("Error while executing {}, check logs...".format(prog))
         sys.exit(1)
-    print_log("Finished {} in {:.0f}h {:.0f}m {:.0f}s".format(prog, h, m, s))
+    print_log("Finished {:22}: {:.0f}h {:.0f}m {:.0f}s".format(prog, h, m, s))
 
 
 
