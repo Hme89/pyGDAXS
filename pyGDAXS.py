@@ -32,7 +32,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         foam_call("decomposePar")
         foam_call("snappyHexMesh", parallel=True)
         foam_call("reconstructParMesh")
-        shutil.copytree("timeData/constant/polyMesh", "save/polyMesh")
+        shutil.copytree("timeData/2/polyMesh", "save/polyMesh")
 
 
     # Simulate gas dispersion
@@ -61,7 +61,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         change_line("timeData/system/controlDict", "endTime  ", combustion_time)
         copy_field("T", "Tu")
         copy_field("H2", "ft")
-        copy_field("p_rgh", "p")
+        # copy_field("p_rgh", "p")
         copy_common_fields()
 
         foam_call("decomposePar")
@@ -90,11 +90,10 @@ def foam_call(cmd, parallel=False):
     h, m = divmod(m, 60)
     fout.close()
     if p.returncode != 0:
-        print_log("Error while executing {}, check logs...".format(prog))
+        print_log("Error while running {} after {:3.0f}h{:3.0f}m{:3.0f}s, check logs...".format(
+            prog, h, m, s))
         sys.exit(1)
-    print_log("Finished {:22}: {:.0f}h {:.0f}m {:.0f}s".format(prog, h, m, s))
-
-
+    print_log("Finished {:23}|{:3.0f}h{:3.0f}m{:3.0f}s".format(prog, h, m, s))
 
 
 def print_log(line):
