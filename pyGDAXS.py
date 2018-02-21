@@ -14,67 +14,60 @@ cores = 2
 
 # Case setup
 ################################################################################
-def run_case(create_mesh):
+def run_case(create_mesh, simulate_dispersion, simulate_explosion):
 
     # Initial Setup
     set_cores()
     clean("timeData", create_new=True)
 
+    # Meshing with SnappyHexMesh
     if create_mesh:
-        clean("mesh", create_new=True)
-        # Meshing with SnappyHexMesh
-        shutil.copytree("snappyHexMesh/constant", "timeData/constant")
+        clean("save", create_new=True)
         shutil.copytree("snappyHexMesh/system", "timeData/system")
+        shutil.copytree("snappyHexMesh/constant", "timeData/constant")
         change_line("timeData/system/snappyHexMeshDict", "locationInMesh", ignition_location)
+
         foam_call("surfaceFeatureExtract")
         foam_call("blockMesh")
-        # foam_call("decomposePar")
-        #TODO fix paralell mesh copy
-        foam_call("snappyHexMesh", parallel=False)
-        # foam_call("reconstructParMesh")
-        cur, nxt = get_timestamps()
-        # shutil.copytree("timeData/{}/polyMesh".format(cur), "mesh/polyMesh")
-        shutil.rmtree("timeData/constant")
-        shutil.rmtree("timeData/system")
+        foam_call("decomposePar")
+        foam_call("snappyHexMesh -overwrite", parallel=True)
+        foam_call("reconstructParMesh")
+        shutil.copytree("timeData/constant/polyMesh", "save/polyMesh")
 
 
     # Simulate gas dispersion
-    cur, nxt = get_timestamps()
-    shutil.copytree("rhoReactingBuoyantFoam/0", "timeData/{}".format(nxt))
-    shutil.copytree("timeData/{}/polyMesh".format(cur), "timeData/{}/polyMesh".format(nxt))
-    shutil.copy("timeData/{}/pointLevel".format(cur), "timeData/{}/pointLevel".format(nxt))
-    shutil.copy("timeData/{}/cellLevel".format(cur), "timeData/{}/cellLevel".format(nxt))
-    shutil.copytree("rhoReactingBuoyantFoam/constant", "timeData/constant")
-    shutil.copytree("rhoReactingBuoyantFoam/system", "timeData/system")
-    change_line("timeData/system/controlDict", "endTime", dispersion_time + 2)
+    if simulate_dispersion:
+        clean("timeData", create_new=True)
+        shutil.copytree("rhoReactingBuoyantFoam/constant", "timeData/constant")
+        shutil.copytree("rhoReactingBuoyantFoam/system", "timeData/system")
+        shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
+        shutil.copytree("rhoReactingBuoyantFoam/0", "timeData/0")
+        change_line("timeData/system/controlDict", "endTime  ", dispersion_time + 2)
 
-
-    # shutil.copytree("mesh/polyMesh", "timeData/constant/polyMesh")
-    foam_call("rhoReactingBuoyantFoam", parallel=False)
-    shutil.rmtree("timeData/system")
-    shutil.rmtree("timeData/constant")
+        foam_call("decomposePar")
+        foam_call("rhoReactingBuoyantFoam", parallel=True)
+        foam_call("reconstructPar -latestTime")
+        shutil.copytree("timeData/{}".format(get_latest_time()), "save/dispersion")
 
 
     # Simulate gas combustion
-    cur, nxt = get_timestamps()
-    shutil.copytree("XiFoam/constant", "timeData/constant")
-    shutil.copytree("XiFoam/system", "timeData/system")
-    shutil.copytree("XiFoam/0", "timeData/{}".format(nxt))
-    shutil.copy("timeData/{}/H2".format(cur), "timeData/{}/ft".format(nxt))
-    shutil.copy("timeData/{}/p_rgh".format(cur), "timeData/{}/p".format(nxt))
-    shutil.copy("timeData/{}/T".format(cur), "timeData/{}/Tu".format(nxt))
-    # FoamConvert to ASCII before change_line
-    change_line("timeData/{}/ft".format(nxt), "object", "ft")
-    change_line("timeData/{}/Tu".format(nxt), "object", "Tu")
-    change_line("timeData/{}/p".format(nxt), "object", "p")
-    change_line("timeData/constant/combustionProperties", "    location", ignition_location)
-    change_line("timeData/system/controlDict", "endTime  ", combustion_time+dispersion_time+3)
-    copy_fields(cur, nxt)
-    foam_call("XiFoam", parallel=False)
+    if simulate_explosion:
+        clean("timeData", create_new=True)
+        shutil.copytree("XiFoam/0", "timeData/0")
+        shutil.copytree("XiFoam/system", "timeData/system")
+        shutil.copytree("XiFoam/constant", "timeData/constant")
+        shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
+        change_line("timeData/constant/combustionProperties", "    location", ignition_location)
+        change_line("timeData/system/controlDict", "endTime  ", combustion_time+dispersion_time+3)
+        copy_field("T", "Tu")
+        copy_field("H2", "ft")
+        copy_field("p_rgh", "p")
+        copy_common_fields()
 
+        foam_call("decomposePar")
+        foam_call("XiFoam", parallel=True)
+        foam_call("reconstructPar")
 
-    # Reconstruct timesteps
-    # foam_call("reconstructPar")
 
 
 # Case functions
@@ -95,11 +88,13 @@ def foam_call(cmd, parallel=False):
     p.wait()
     m, s = divmod(time.time() - start_time, 60)
     h, m = divmod(m, 60)
-    print_log("Finished {} in {:.0f}h {:.0f}m {:.0f}s".format(prog, h, m, s))
     fout.close()
     if p.returncode != 0:
         print_log("Error while executing {}, check logs...".format(prog))
         sys.exit(1)
+    print_log("Finished {} in {:.0f}h {:.0f}m {:.0f}s".format(prog, h, m, s))
+
+
 
 
 def print_log(line):
@@ -136,16 +131,16 @@ def change_line(path, key, value):
         outfile.writelines(new_content)
 
 
-def get_timestamps():
+def get_latest_time():
     "Sets next timestep to whole number + 1 from previous timestep"
-    latest_time = "-1"
+    latest_time = "0"
     for folder in os.listdir("timeData"):
         try:
             if float(folder) > float(latest_time):
                 latest_time = folder
         except ValueError:
             pass
-    return latest_time, int(ceil(float(latest_time) + 1))
+    return latest_time
 
 
 def set_cores():
@@ -155,19 +150,25 @@ def set_cores():
     change_line("XiFoam/system/decomposeParDict", "numberOfSubdomains", cores)
 
 
-def copy_fields(cur, nxt):
-    "Copies common fields when changing solver"
-    for field in ["alphat", "epsilon", "k", "nut", "T", "U"]:
-        shutil.copy("timeData/{}/{}".format(cur, field), "timeData/{}/{}".format(nxt, field))
+def copy_field(a, b):
+    "Copies common fields when changing from dispersion to combustion solver"
+    shutil.copy("save/dispersion/{}".format(a),"timeData/0/{}".format(b))
+    change_line("timeData/0/{}".format(b), "object", b)
 
+def copy_common_fields():
+    # for field in os.listdir("save/dispersion"):
+    for f in ["alphat", "epsilon", "k", "nut", "T", "U"]:
+        shutil.copy("save/dispersion/{}".format(f), "timeData/0/{}".format(f))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="pyGDAXS: Gas Dispersion And Xplosion Solver")
     parser.add_argument("-a", action="store_true",
         default=False, help="Run all: Clean, mesh and simulate")
-    parser.add_argument("-s", action="store_true",
-        default=False, help="Simulate dispersion and combustion")
+    parser.add_argument("-d", action="store_true",
+        default=False, help="Simulate gas dispersion")
+    parser.add_argument("-x", action="store_true",
+        default=False, help="Simulate gas explosion")
     parser.add_argument("-c", action="store_true",
         default=False, help="Clean mesh and solution folders and logs")
     parser.add_argument("-m", action="store_true",
@@ -176,14 +177,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.a:
         args.c = True
-        args.s = True
         args.m = True
+        args.d = True
+        args.x = True
 
 
     if args.c:
         print("Cleaning logfiles and solutions...")
         clean("timeData", create_new=False)
-        clean("mesh", create_new=False)
+        clean("save", create_new=False)
         del_files = ["log.", ".eMesh"]
         del_folders = ["polyMesh", "extendedFeatureEdgeMesh", "processor"]
         for dirpath, dnames, fnames in os.walk("./"):
@@ -203,5 +205,5 @@ if __name__ == "__main__":
                         pass
 
 
-    if args.s:
-        run_case(args.m)
+    if any([args.m, args.d, args.x]):
+        run_case(args.m, args.d, args.x)

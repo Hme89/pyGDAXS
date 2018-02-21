@@ -6,6 +6,6 @@ processor*
 */constant/polyMesh
 */extendedFeatureEdgeMesh
 */constant/triSurface/*.eMesh
-tmp
+save/*
 timeData/*
 geometries/*
