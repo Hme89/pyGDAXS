@@ -33,6 +33,17 @@ geometry
         type triSurfaceMesh;
         file "container.obj";
     }
+    inlet
+    {
+        type triSurfaceMesh;
+        file "inlet.obj";
+    }
+    base
+    {
+        type triSurfaceMesh;
+        file "base.obj";
+    }
+
 };
 
 
@@ -83,10 +94,19 @@ castellatedMeshControls
     // This is a featureEdgeMesh, read from constant/triSurface for now.
     features
     (
-        {
-            file "container.eMesh";
-            level 2;
-        }
+      // {
+      //     file "container.eMesh";
+      //     level 2;
+      // }
+      // {
+      //     file "inlet.eMesh";
+      //     level 2;
+      // }
+      // {
+      //     file "base.eMesh";
+      //     level 2;
+      // }
+
     );
 
 
@@ -102,19 +122,45 @@ castellatedMeshControls
 
     refinementSurfaces
     {
-        container
-        {
-            // Surface-wise min and max refinement level
-            level (1 3);
+      container
+      {
+          // Surface-wise min and max refinement level
+          level (1 2);
 
-            // Optional specification of patch type (default is wall). No
-            // constraint types (cyclic, symmetry) etc. are allowed.
-            patchInfo
-            {
-                type wall;
-                inGroups (containerGroup);
-            }
-        }
+          // Optional specification of patch type (default is wall). No
+          // constraint types (cyclic, symmetry) etc. are allowed.
+          patchInfo
+          {
+              type wall;
+              inGroups (containerGroup);
+          }
+      }
+      inlet
+      {
+          // Surface-wise min and max refinement level
+          level (1 2);
+
+          // Optional specification of patch type (default is wall). No
+          // constraint types (cyclic, symmetry) etc. are allowed.
+          patchInfo
+          {
+              type patch;
+              inGroups (inletGroup);
+          }
+      }
+      base
+      {
+          // Surface-wise min and max refinement level
+          level (1 2);
+
+          // Optional specification of patch type (default is wall). No
+          // constraint types (cyclic, symmetry) etc. are allowed.
+          patchInfo
+          {
+              type patch;
+              inGroups (baseGroup);
+          }
+      }
     }
 
     // Resolve sharp angles
@@ -190,7 +236,7 @@ snapControls
 
         //- Detect (geometric only) features by sampling the surface
         //  (default=false).
-        implicitFeatureSnap true;
+        implicitFeatureSnap false;
 
         //- Use castellatedMeshControls::features (default = true)
         explicitFeatureSnap false;

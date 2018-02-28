@@ -18,22 +18,13 @@ FoamFile
 dimensions      [0 2 -3 0 0 0 0];
 
 internalField   uniform 300;
+#include        "include/jetCoeffs"
 
 boundaryField
 {
+  #include      "include/sidesZeroGradient"
 
-  inlet
-  {
-    type        fixedValue;
-    value       $internalField;
-  }
-
-  outlet
-  {
-    type        zeroGradient;
-  }
-
-  walls
+  ground
   {
     type        epsilonWallFunction;
     value       $internalField;
@@ -43,6 +34,12 @@ boundaryField
   {
     type        epsilonWallFunction;
     value       $internalField;
+  }
+
+  inlet
+  {
+    type        fixedValue;
+    value       $epsilonJet;
   }
 }
 

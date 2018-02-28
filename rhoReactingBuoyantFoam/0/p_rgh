@@ -22,34 +22,35 @@ internalField   uniform 101325;
 boundaryField
 {
 
-  inlet
+  "side.*"
   {
-    type            fixedFluxPressure;
-    gradient        uniform 0;
+    type            fixedValue;
     value           $internalField;
   }
 
-  outlet
+  ground
   {
     type            fixedFluxPressure;
-    // gradient        uniform 0;
-    value           $internalField;
-  }
-
-  walls
-  {
-    type            fixedFluxPressure;
-    gradient        uniform 0;
     value           $internalField;
     }
 
   container
   {
     type            fixedFluxPressure;
-    gradient        uniform 0;
     value           $internalField;
   }
 
+  inlet
+  {
+    type            fixedFluxPressure;
+    value           $internalField;
+  }
+
+  base
+  {
+    type            fixedFluxPressure;
+    value           $internalField;
+  }
 
 }
 

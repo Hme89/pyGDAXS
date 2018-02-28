@@ -18,28 +18,31 @@ FoamFile
 dimensions      [1 -1 -1 0 0 0 0];
 
 internalField   uniform 0;
+#include        "include/jetCoeffs"
 
 boundaryField
 {
-  inlet
+
+  #include      "include/sidesZeroGradient"
+
+  ground
   {
-    type        fixedValue;
+    type        compressible::alphatWallFunction;
+    Prt         0.85;
     value       $internalField;
-  }
-
-  outlet
-  {
-    type        zeroGradient;
-  }
-
-  walls
-  {
-    type        zeroGradient;
   }
 
   container
   {
-    type        zeroGradient;
+    type        compressible::alphatWallFunction;
+    Prt         0.85;
+    value       $internalField;
+  }
+
+  inlet
+  {
+    type        fixedValue;
+    value       $alphatJet;
   }
 
 }

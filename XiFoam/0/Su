@@ -20,21 +20,13 @@ internalField   uniform 0.434;
 
 boundaryField
 {
-  inlet
+  
+  #include      "include/sidesGroundContainerZeroGradient"
+
+  jet
   {
-    type          zeroGradient;
-  }
-  outlet
-  {
-    type          zeroGradient;
-  }
-  walls
-  {
-    type          zeroGradient;
-  }
-  container
-  {
-    type          zeroGradient;
+    type          fixedValue;
+    value         $internalField;
   }
 
 }

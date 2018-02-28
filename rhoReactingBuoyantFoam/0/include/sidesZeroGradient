@@ -5,31 +5,35 @@
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
-FoamFile
+
+side_x_minus
 {
-    version     2.0;
-    format      ascii;
-    class       volScalarField;
-    location    "0";
-    object      H2;
+  type        zeroGradient;
 }
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 0 0 0 0 0 0];
-
-internalField   uniform 0;
-#include        "include/jetCoeffs"
-
-boundaryField
+side_x_plus
 {
-  #include      "include/sidesGroundContainerZeroGradient"
+  type        zeroGradient;
+}
 
-  inlet
-  {
-    type        fixedValue;
-    value       $H2Jet;
-  }
+side_z_minus
+{
+  type        zeroGradient;
+}
 
+side_z_plus
+{
+  type        zeroGradient;
+}
+
+side_y_plus
+{
+  type        zeroGradient;
+}
+
+base
+{
+  type        zeroGradient;
 }
 
 // ************************************************************************* //

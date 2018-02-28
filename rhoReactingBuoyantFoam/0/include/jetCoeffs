@@ -5,31 +5,14 @@
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       volScalarField;
-    location    "0";
-    object      H2;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 0 0 0 0 0 0];
-
-internalField   uniform 0;
-#include        "include/jetCoeffs"
-
-boundaryField
-{
-  #include      "include/sidesGroundContainerZeroGradient"
-
-  inlet
-  {
-    type        fixedValue;
-    value       $H2Jet;
-  }
-
-}
+UJet              uniform (0 0 20);
+alphatJet         uniform 0.24;
+epsilonJet        uniform 0.24;
+kjet              uniform 0.05;
+nutJet            uniform 0.025;
+AIRJet            uniform 0;
+H2Jet             uniform 1;
+TJet              uniform 250;
 
 // ************************************************************************* //

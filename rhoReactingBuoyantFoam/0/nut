@@ -18,22 +18,14 @@ FoamFile
 dimensions      [0 2 -1 0 0 0 0];
 
 internalField   uniform 0;
+#include        "include/jetCoeffs"
 
 boundaryField
 {
 
-  inlet
-  {
-    type        fixedValue;
-    value       $internalField;
-  }
+  #include      "include/sidesZeroGradient"
 
-  outlet
-  {
-    type        zeroGradient;
-  }
-
-  walls
+  ground
   {
     type        nutkWallFunction;
     value       $internalField;
@@ -43,6 +35,12 @@ boundaryField
   {
     type        nutkWallFunction;
     value       $internalField;
+  }
+
+  inlet
+  {
+    type        fixedValue;
+    value       $nutJet;
   }
 
 }

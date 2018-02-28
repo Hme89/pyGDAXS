@@ -1,15 +1,16 @@
-#!/bin/python3
+#!/usr/bin/env python3
 import subprocess, argparse, shutil, time, sys, os
+# import progressbar
 from math import ceil
 
 # Config parameters. Time in seconds
 ################################################################################
 sourcefile_path = "/opt/OpenFOAM/OpenFOAM-5.0/etc/bashrc"
 ignition_location = "(0.7 1.8 1.0)" # C++ syntax
-dispersion_time = 10
+dispersion_time = 6
 combustion_time = 1
 logging = True
-cores = 2
+cores = 4
 
 
 # Case setup
@@ -18,16 +19,20 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
 
     # Initial Setup
     set_cores()
-    clean("timeData", create_new=True)
+    clean_folder("timeData", create_new=True)
+    clean_file("log.pyGDAXS")
 
-    # Meshing with SnappyHexMesh
     if create_mesh:
-        clean("save", create_new=True)
+        print_log(
+        """---------------------------------\
+        \nMeshing phase                   |\
+        \n---------------------------------""")
+        clean_folder("save", create_new=True)
         shutil.copytree("snappyHexMesh/system", "timeData/system")
         shutil.copytree("snappyHexMesh/constant", "timeData/constant")
         change_line("timeData/system/snappyHexMeshDict", "locationInMesh", ignition_location)
 
-        foam_call("surfaceFeatureExtract")
+        # foam_call("surfaceFeatureExtract")
         foam_call("blockMesh")
         foam_call("decomposePar")
         foam_call("snappyHexMesh", parallel=True)
@@ -35,9 +40,13 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         shutil.copytree("timeData/2/polyMesh", "save/polyMesh")
 
 
-    # Simulate gas dispersion
     if simulate_dispersion:
-        clean("timeData", create_new=True)
+        print_log(
+        """---------------------------------\
+        \nDispersion phase                |\
+        \n---------------------------------""")
+        clean_folder("timeData", create_new=True)
+        clean_folder("save/dispersion", create_new=False)
         shutil.copytree("rhoReactingBuoyantFoam/constant", "timeData/constant")
         shutil.copytree("rhoReactingBuoyantFoam/system", "timeData/system")
         shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
@@ -50,13 +59,17 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         shutil.copytree("timeData/{}".format(get_latest_time()), "save/dispersion")
 
 
-    # Simulate gas combustion
     if simulate_explosion:
-        clean("timeData", create_new=True)
+        print_log(
+        """---------------------------------\
+        \nCombustion phase                |\
+        \n---------------------------------""")
+        clean_folder("timeData", create_new=True)
         shutil.copytree("XiFoam/0", "timeData/0")
         shutil.copytree("XiFoam/system", "timeData/system")
         shutil.copytree("XiFoam/constant", "timeData/constant")
         shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
+        shutil.copytree("rhoReactingBuoyantFoam/0/include", "timeData/0/include")
         change_line("timeData/constant/combustionProperties", "    location", ignition_location)
         change_line("timeData/system/controlDict", "endTime  ", combustion_time)
         copy_field("T", "Tu")
@@ -104,14 +117,16 @@ def print_log(line):
     print(line)
 
 
-def clean(folder, create_new=True):
-    if os.path.isdir(folder):
-        shutil.rmtree(folder)
-        if create_new:
-            os.mkdir(folder)
-    else:
-        if create_new:
-            os.mkdir(folder)
+def clean_folder(path, create_new=True):
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+    if create_new:
+        os.mkdir(path)
+
+
+def clean_file(path):
+    if os.path.isfile(path):
+        os.remove(path)
 
 
 def change_line(path, key, value):
@@ -163,15 +178,15 @@ def copy_common_fields():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="pyGDAXS: Gas Dispersion And Xplosion Solver")
     parser.add_argument("-a", action="store_true",
-        default=False, help="Run all: Clean, mesh and simulate")
+        default=False, help="Run all: Clean, generate mesh and simulate")
+    parser.add_argument("-m", action="store_true",
+        default=False, help="Generate new mesh")
     parser.add_argument("-d", action="store_true",
-        default=False, help="Simulate gas dispersion")
+        default=False, help="Simulate gas dispersion, requires mesh")
     parser.add_argument("-x", action="store_true",
-        default=False, help="Simulate gas explosion")
+        default=False, help="Simulate gas explosion, requires mesh & dispersion")
     parser.add_argument("-c", action="store_true",
         default=False, help="Clean mesh and solution folders and logs")
-    parser.add_argument("-m", action="store_true",
-        default=False, help="Generate new mesh. Not necessary for each new run")
 
     args = parser.parse_args()
     if args.a:
@@ -183,8 +198,8 @@ if __name__ == "__main__":
 
     if args.c:
         print("Cleaning logfiles and solutions...")
-        clean("timeData", create_new=False)
-        clean("save", create_new=False)
+        clean_folder("timeData", create_new=False)
+        clean_folder("save", create_new=False)
         del_files = ["log.", ".eMesh"]
         del_folders = ["polyMesh", "extendedFeatureEdgeMesh", "processor"]
         for dirpath, dnames, fnames in os.walk("./"):

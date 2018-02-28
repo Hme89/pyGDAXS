@@ -10,7 +10,6 @@ FoamFile
     version     2.0;
     format      ascii;
     class       volScalarField;
-    location    "0";
     object      p;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -19,25 +18,13 @@ dimensions      [1 -1 -2 0 0 0 0];
 
 internalField   uniform 101325;
 
+
 boundaryField
 {
-  inlet
-  {
-    type            zeroGradient;
-  }
 
-  outlet
-  {
-    type            fixedValue;
-    value           $internalField;
-  }
+  #include      "include/sidesGroundContainerZeroGradient"
 
-  walls
-  {
-    type            zeroGradient;
-  }
-
-  container
+  jet
   {
     type            zeroGradient;
   }
