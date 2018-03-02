@@ -41,6 +41,12 @@ boundaryField
     type        fixedValue;
     value       $epsilonJet;
   }
+
+  base
+  {
+    type        zeroGradient;
+  }
+
 }
 
 // ************************************************************************* //

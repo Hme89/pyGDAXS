@@ -2,10 +2,11 @@ __*
 log.*
 [0-9]*
 !0
+save/*
 processor*
+timeData/*
+geometries/*
 */constant/polyMesh
 */extendedFeatureEdgeMesh
 */constant/triSurface/*.eMesh
-save/*
-timeData/*
-geometries/*
+snappyHexMesh/constant/triSurface/*

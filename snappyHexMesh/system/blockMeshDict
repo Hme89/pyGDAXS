@@ -23,7 +23,7 @@ y_upp  5;
 z_low  0;
 z_upp  5;
 
-res 20;
+res 15;
 convertToMeters 1;
 
 vertices

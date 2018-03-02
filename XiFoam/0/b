@@ -23,7 +23,7 @@ boundaryField
 
   #include      "include/sidesGroundContainerZeroGradient"
 
-  jet
+  inlet
   {
     type          fixedValue;
     value         $internalField;

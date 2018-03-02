@@ -24,7 +24,7 @@ boundaryField
 
   #include      "include/sidesGroundContainerZeroGradient"
 
-  jet
+  inlet
   {
     type            zeroGradient;
   }

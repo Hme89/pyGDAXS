@@ -24,17 +24,12 @@ internalField   uniform (0 0 0);
 boundaryField
 {
 
-  // #include      "include/sidesZeroGradient"
-  "side.*"
-  {
-    type            pressureInletOutletVelocity;
-    value           uniform (0 0 0);
-  }
+  #include      "include/sidesZeroGradient"
 
-  base
-  {
-    type        slip;
 
+  container
+  {
+    type        noSlip;
   }
 
   ground
@@ -42,16 +37,16 @@ boundaryField
     type        noSlip;
   }
 
-  container
-  {
-    type        noSlip;
-  }
-
   inlet
   {
-    // type        ZeroGradient;
+    // type        zeroGradient;
     type        fixedValue;
     value       $UJet;
+  }
+
+  base
+  {
+    type         noSlip;
   }
 
 }

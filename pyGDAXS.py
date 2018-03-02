@@ -6,8 +6,9 @@ from math import ceil
 # Config parameters. Time in seconds
 ################################################################################
 sourcefile_path = "/opt/OpenFOAM/OpenFOAM-5.0/etc/bashrc"
+# sourcefile_path = "/opt/openfoam5/etc/bashrc"
 ignition_location = "(0.7 1.8 1.0)" # C++ syntax
-dispersion_time = 6
+dispersion_time = 10
 combustion_time = 1
 logging = True
 cores = 4
@@ -55,7 +56,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
 
         foam_call("decomposePar")
         foam_call("rhoReactingBuoyantFoam", parallel=True)
-        foam_call("reconstructPar -latestTime")
+        if not simulate_explosion: foam_call("reconstructPar") else: foam_call("reconstructPar -latestTime")
         shutil.copytree("timeData/{}".format(get_latest_time()), "save/dispersion")
 
 
@@ -88,17 +89,21 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
 def foam_call(cmd, parallel=False):
     prog = cmd.split(" ")[0]
     start_time = time.time()
-    fout = open("log.{}".format(prog), "w")
+    fout = open("log.{}".format(prog), "a")
     if parallel: cmd = "mpirun -np {} {} -parallel".format(cores, cmd)
-    p = subprocess.Popen(
-        "cd {} && source {} && {}".format("timeData", sourcefile_path, cmd),
-        shell = True,
-        executable = "/bin/bash",
-        stdout = fout if logging else None,
-        stderr = fout if logging else None,
-    )
-    print("Running  {}".format(prog), end="\r")
-    p.wait()
+    try:
+        p = subprocess.Popen(
+            "cd {} && source {} && {}".format("timeData", sourcefile_path, cmd),
+            shell = True,
+            executable = "/bin/bash",
+            stdout = fout if logging else None,
+            stderr = fout if logging else None,
+        )
+        print("Running  {}".format(prog), end="\r")
+        p.wait()
+    except KeyboardInterrupt:
+        print_log("Canceled by user...")
+        sys.exit(0)
     m, s = divmod(time.time() - start_time, 60)
     h, m = divmod(m, 60)
     fout.close()
@@ -169,10 +174,20 @@ def copy_field(a, b):
     shutil.copy("save/dispersion/{}".format(a),"timeData/0/{}".format(b))
     change_line("timeData/0/{}".format(b), "object", b)
 
+
 def copy_common_fields():
     # for field in os.listdir("save/dispersion"):
     for f in ["alphat", "epsilon", "k", "nut", "T", "U"]:
         shutil.copy("save/dispersion/{}".format(f), "timeData/0/{}".format(f))
+
+
+def set_run(args, state):
+    args.c = state
+    args.m = state
+    args.d = state
+    args.x = state
+
+
 
 
 if __name__ == "__main__":
@@ -190,10 +205,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.a:
-        args.c = True
-        args.m = True
-        args.d = True
-        args.x = True
+        set_run(args, True)
 
 
     if args.c:
@@ -217,6 +229,22 @@ if __name__ == "__main__":
                         shutil.rmtree(os.path.join(dirpath,d))
                     except ValueError:
                         pass
+
+
+    if not args.d and not os.path.isdir("save/dispersion") and args.x:
+        yn = input("No dispersion data found, Create now?  (y/n)\n")
+        if yn in ["Y", "y"]:
+            args.d = True
+        else:
+            set_run(args, False)
+
+    if not args.m and not os.path.isdir("save/polyMesh") and args.d:
+        yn = input("No mesh created, Create now?  (y/n)\n")
+        if yn in ["Y", "y"]:
+            args.m = True
+        else:
+            set_run(args, False)
+
 
 
     if any([args.m, args.d, args.x]):

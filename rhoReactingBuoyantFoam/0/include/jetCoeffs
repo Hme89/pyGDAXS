@@ -6,13 +6,13 @@
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 
-UJet              uniform (0 0 20);
+UJet              uniform (0 0 10);
 alphatJet         uniform 0.24;
 epsilonJet        uniform 0.24;
 kjet              uniform 0.05;
 nutJet            uniform 0.025;
 AIRJet            uniform 0;
 H2Jet             uniform 1;
-TJet              uniform 250;
+TJet              uniform 300;
 
 // ************************************************************************* //

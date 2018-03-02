@@ -20,10 +20,10 @@ internalField   uniform 0.434;
 
 boundaryField
 {
-  
+
   #include      "include/sidesGroundContainerZeroGradient"
 
-  jet
+  inlet
   {
     type          fixedValue;
     value         $internalField;

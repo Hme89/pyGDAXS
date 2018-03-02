@@ -45,6 +45,11 @@ boundaryField
     value       $alphatJet;
   }
 
+  base
+  {
+    type        zeroGradient;
+  }
+
 }
 
 

@@ -31,9 +31,4 @@ side_y_plus
   type        zeroGradient;
 }
 
-base
-{
-  type        zeroGradient;
-}
-
 // ************************************************************************* //
