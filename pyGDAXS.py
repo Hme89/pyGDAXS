@@ -1,13 +1,15 @@
-#!/usr/bin/env python3
+in_mesh#!/usr/bin/env python3
 import subprocess, argparse, shutil, time, sys, os
 # import progressbar
 from math import ceil
 
-# Config parameters. Time in seconds
+# Config parameters
 ################################################################################
 # source_path = "/opt/openfoam5/etc/bashrc"
 source_path   = "/opt/OpenFOAM/OpenFOAM-5.0/etc/bashrc"
-geometry_path = "geometries/other/cylinder_shifted.obj"
+
+# Path is relative to the main pyGDAXS folder.
+geometry_path = "geometries/testing.obj"
 
 # Program params
 mpi_options   = "--map-by core --bind-to core --report-bindings"
@@ -16,11 +18,11 @@ logging = True
 
 # Default jet: 1m diameter and 1m long
 # Base at (0 0 0), pointing in z-direction
-# Scaling occurs before rotation, so x&z scaling will flatten/widen
-jet_scale = [0.5, 1, 2]
+# Scaling occurs before rotation, un-even x&z scaling will flatten/widen
+jet_scale = [0.5, 0.5, 0.5]
 
 # Location of the base of jet geometry
-jet_location = [2.7, 3.8, 2.0]
+jet_location = [2.5, 3.8, 2.0]
 
 # Rotation [pitch, yaw] / rotation around [x-axis, y-axis] in degrees
 # x-axis = 90 -> downward, x-axis = 270 -> upward
@@ -28,8 +30,9 @@ jet_location = [2.7, 3.8, 2.0]
 jet_direction = [90, 0]
 
 # Location of ignition source, must be inside mesh (not geometry)
-ignition_location = "(0.7 1.8 1.0)" # C++ syntax
+ignition_location = [0.7, 1.8, 1.0]
 
+# Solver run-time in seconds
 dispersion_time = 6
 combustion_time = 1
 
@@ -43,6 +46,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
     set_cores()
     clean_folder("timeData", create_new=True)
     clean_file("log.pyGDAXS")
+    in_mesh = "({} {} {})".format(*ignition_location)
 
     if create_mesh:
         print_log(
@@ -52,7 +56,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         clean_folder("save", create_new=True)
         shutil.copytree("snappyHexMesh/system", "timeData/system")
         shutil.copytree("snappyHexMesh/constant", "timeData/constant")
-        change_line("timeData/system/snappyHexMeshDict", "locationInMesh", ignition_location)
+        change_line("timeData/system/snappyHexMeshDict", "locationInMesh", in_mesh)
         shutil.copy(geometry_path, "timeData/constant/triSurface/container.obj")
         place_jet(jet_scale, jet_location, jet_direction)
 
@@ -95,7 +99,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         shutil.copytree("XiFoam/constant", "timeData/constant")
         shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
         shutil.copytree("rhoReactingBuoyantFoam/0/include", "timeData/0/include")
-        change_line("timeData/constant/combustionProperties", "    location", ignition_location)
+        change_line("timeData/constant/combustionProperties", "    location", in_mesh)
         change_line("timeData/system/controlDict", "endTime  ", combustion_time)
         copy_field("T", "Tu")
         copy_field("H2", "ft")
@@ -110,10 +114,10 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
 
 # Case functions
 ################################################################################
-def foam_call(cmd, parallel=False, log_call=logging):
+def foam_call(cmd, parallel=False, last=True):
     prog = cmd.split(" ")[0]
     start_time = time.time()
-    if log_call:
+    if logging:
         fout = open("log.{}".format(prog), "a")
     else:
         fout = open("/dev/null", "w")
@@ -126,7 +130,7 @@ def foam_call(cmd, parallel=False, log_call=logging):
             executable = "/bin/bash",
             stdout = fout, stderr = fout
         )
-        if log_call:
+        if logging:
             print("Running  {}".format(prog), end="\r")
         p.wait()
     except KeyboardInterrupt:
@@ -139,7 +143,7 @@ def foam_call(cmd, parallel=False, log_call=logging):
         print_log("Error while running {} after {:3.0f}h{:3.0f}m{:3.0f}s, check logs...".format(
             prog, h, m, s))
         sys.exit(1)
-    if log_call:
+    if logging and last:
         print_log("Finished {:23}|{:3.0f}h{:3.0f}m{:3.0f}s".format(prog, h, m, s))
 
 
@@ -206,13 +210,12 @@ def copy_field(a, b):
 
 def copy_common_fields():
     # for field in os.listdir("save/dispersion"):
-    for f in ["alphat", "epsilon", "k", "nut", "T", "U"]:
+    for f in ["alphat", "epsilon", "k", "nut", "T", "U", "p"]:
         shutil.copy("save/dispersion/{}".format(f), "timeData/0/{}".format(f))
 
 def place_jet(s, l, d):
     stp = "surfaceTransformPoints"
     start_time = time.time()
-    print("Running  {}".format(stp), end="\r")
 
     for patch in ["base", "inlet"]:
         obj = "constant/triSurface/{}.obj".format(patch)
@@ -220,11 +223,11 @@ def place_jet(s, l, d):
             "timeData/{}".format(obj))
 
         foam_call("{0} -scale '({1} {2} {3})' {4} {4}".format(
-            stp, s[0], s[1], s[2], obj), log_call=False)
+            stp, s[0], s[1], s[2], obj), last = False)
         foam_call("{0} -rollPitchYaw '({1} {2} 0)' {3} {3}".format(
-            stp, d[0], d[1], obj), log_call=False)
+            stp, d[0], d[1], obj), last = False)
         foam_call("{0} -translate '({1} {2} {3})' {4} {4}".format(
-            stp, l[0], l[1], l[2], obj), log_call=False)
+            stp, l[0], l[1], l[2], obj), last = False)
 
     m, s = divmod(time.time() - start_time, 60)
     h, m = divmod(m, 60)

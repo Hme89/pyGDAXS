@@ -5,8 +5,6 @@ log.*
 save/*
 processor*
 timeData/*
-geometries/*
 */constant/polyMesh
 */extendedFeatureEdgeMesh
 */constant/triSurface/*.eMesh
-snappyHexMesh/constant/triSurface/*
