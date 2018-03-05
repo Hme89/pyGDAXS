@@ -13,6 +13,6 @@ kjet              uniform 0.05;
 nutJet            uniform 0.025;
 AIRJet            uniform 0;
 H2Jet             uniform 1;
-TJet              uniform 300;
+TJet              uniform 280;
 
 // ************************************************************************* //

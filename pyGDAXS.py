@@ -1,4 +1,4 @@
-in_mesh#!/usr/bin/env python3
+#!/usr/bin/env python3
 import subprocess, argparse, shutil, time, sys, os
 # import progressbar
 from math import ceil
@@ -27,7 +27,7 @@ jet_location = [2.5, 3.8, 2.0]
 # Rotation [pitch, yaw] / rotation around [x-axis, y-axis] in degrees
 # x-axis = 90 -> downward, x-axis = 270 -> upward
 # Roll not included, as the jet is symmetric
-jet_direction = [90, 0]
+jet_direction = [0, 0]
 
 # Location of ignition source, must be inside mesh (not geometry)
 ignition_location = [0.7, 1.8, 1.0]
@@ -65,6 +65,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         foam_call("decomposePar")
         foam_call("snappyHexMesh", parallel=True)
         foam_call("reconstructParMesh")
+        foam_call("checkMesh")
         shutil.copytree("timeData/2/polyMesh", "save/polyMesh")
 
 
@@ -85,6 +86,9 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         foam_call("rhoReactingBuoyantFoam", parallel=True)
         if not simulate_explosion: foam_call("reconstructPar")
         else: foam_call("reconstructPar -latestTime")
+
+        change_line("timeData/system/controlDict", "writeFormat", "ascii")
+        foam_call("foamFormatConvert -latestTime")
         shutil.copytree("timeData/{}".format(get_latest_time()), "save/dispersion")
 
 
@@ -101,9 +105,9 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         shutil.copytree("rhoReactingBuoyantFoam/0/include", "timeData/0/include")
         change_line("timeData/constant/combustionProperties", "    location", in_mesh)
         change_line("timeData/system/controlDict", "endTime  ", combustion_time)
+
         copy_field("T", "Tu")
         copy_field("H2", "ft")
-        # copy_field("p_rgh", "p")
         copy_common_fields()
 
         foam_call("decomposePar")
@@ -168,7 +172,7 @@ def clean_file(path):
 
 
 def change_line(path, key, value):
-    "Changes the value in the given file to the specifies value"
+    "Changes the first value in the given file to the specifies value"
     new_content = []
     with open(path, "r") as infile:
         lines = infile.readlines()
@@ -206,12 +210,13 @@ def copy_field(a, b):
     "Copies common fields when changing from dispersion to combustion solver"
     shutil.copy("save/dispersion/{}".format(a),"timeData/0/{}".format(b))
     change_line("timeData/0/{}".format(b), "object", b)
+    change_line("timeData/0/{}".format(b), "location", "0")
 
 
 def copy_common_fields():
-    # for field in os.listdir("save/dispersion"):
     for f in ["alphat", "epsilon", "k", "nut", "T", "U", "p"]:
         shutil.copy("save/dispersion/{}".format(f), "timeData/0/{}".format(f))
+        change_line("timeData/0/{}".format(f), "location", "0")
 
 def place_jet(s, l, d):
     stp = "surfaceTransformPoints"
