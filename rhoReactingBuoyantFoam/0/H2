@@ -17,12 +17,32 @@ FoamFile
 
 dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 0;
-#include        "include/jetCoeffs"
+#include        "include/coeffs"
+internalField   $H20;
 
 boundaryField
 {
-  #include      "include/sidesGroundContainerZeroGradient"
+
+  "side.*"
+  {
+    type        inletOutlet;
+    inletValue  uniform 0;
+  }
+
+  ground
+  {
+    type        zeroGradient;
+  }
+
+  container
+  {
+    type        zeroGradient;
+  }
+
+  base
+  {
+    type        zeroGradient;
+  }
 
   inlet
   {

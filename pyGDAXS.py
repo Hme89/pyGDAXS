@@ -1,36 +1,37 @@
 #!/usr/bin/env python3
 import subprocess, argparse, shutil, time, sys, os
-# import progressbar
 from math import ceil
+import select
 
 # Config parameters
 ################################################################################
-# source_path = "/opt/openfoam5/etc/bashrc"
-source_path   = "/opt/OpenFOAM/OpenFOAM-5.0/etc/bashrc"
+# source_path   = "/opt/OpenFOAM/OpenFOAM-5.0/etc/bashrc"
+source_path = "/opt/openfoam5/etc/bashrc"
 
 # Path is relative to the main pyGDAXS folder.
-geometry_path = "geometries/testing.obj"
+geometry_path = "geometries/hme_container2.obj"
 
 # Program params
 mpi_options   = "--map-by core --bind-to core --report-bindings"
-cores = 4
+cores = 16
 logging = True
 
 # Default jet: 1m diameter and 1m long
 # Base at (0 0 0), pointing in z-direction
 # Scaling occurs before rotation, un-even x&z scaling will flatten/widen
-jet_scale = [0.5, 0.5, 0.5]
+jet_scale = [0.4, 0.4, 0.4]
 
 # Location of the base of jet geometry
-jet_location = [2.5, 3.8, 2.0]
+# jet_location = [1, 1, 0.5]
+jet_location = [100, 100, 100]
 
 # Rotation [pitch, yaw] / rotation around [x-axis, y-axis] in degrees
 # x-axis = 90 -> downward, x-axis = 270 -> upward
 # Roll not included, as the jet is symmetric
-jet_direction = [0, 0]
+jet_direction = [90, 0]
 
 # Location of ignition source, must be inside mesh (not geometry)
-ignition_location = [0.7, 1.8, 1.0]
+ignition_location = [1.9, 1.9, 3]
 
 # Solver run-time in seconds
 dispersion_time = 6
@@ -43,9 +44,7 @@ combustion_time = 1
 def run_case(create_mesh, simulate_dispersion, simulate_explosion):
 
     # Initial Setup
-    set_cores()
     clean_folder("timeData", create_new=True)
-    clean_file("log.pyGDAXS")
     in_mesh = "({} {} {})".format(*ignition_location)
 
     if create_mesh:
@@ -54,10 +53,10 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         \nMeshing phase                   |\
         \n---------------------------------""")
         clean_folder("save", create_new=True)
-        shutil.copytree("snappyHexMesh/system", "timeData/system")
-        shutil.copytree("snappyHexMesh/constant", "timeData/constant")
+        copy_case_files("snappyHexMesh")
         change_line("timeData/system/snappyHexMeshDict", "locationInMesh", in_mesh)
         shutil.copy(geometry_path, "timeData/constant/triSurface/container.obj")
+        # shutil.copy(geometry_path, "timeData/constant/triSurface/container.stl")
         place_jet(jet_scale, jet_location, jet_direction)
 
         # foam_call("surfaceFeatureExtract")
@@ -76,10 +75,8 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         \n---------------------------------""")
         clean_folder("timeData", create_new=True)
         clean_folder("save/dispersion", create_new=False)
-        shutil.copytree("rhoReactingBuoyantFoam/constant", "timeData/constant")
-        shutil.copytree("rhoReactingBuoyantFoam/system", "timeData/system")
+        copy_case_files("rhoReactingBuoyantFoam")
         shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
-        shutil.copytree("rhoReactingBuoyantFoam/0", "timeData/0")
         change_line("timeData/system/controlDict", "endTime  ", dispersion_time)
 
         foam_call("decomposePar")
@@ -98,17 +95,15 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         \nCombustion phase                |\
         \n---------------------------------""")
         clean_folder("timeData", create_new=True)
-        shutil.copytree("XiFoam/0", "timeData/0")
-        shutil.copytree("XiFoam/system", "timeData/system")
-        shutil.copytree("XiFoam/constant", "timeData/constant")
+        copy_case_files("XiFoam")
         shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
-        shutil.copytree("rhoReactingBuoyantFoam/0/include", "timeData/0/include")
         change_line("timeData/constant/combustionProperties", "    location", in_mesh)
         change_line("timeData/system/controlDict", "endTime  ", combustion_time)
 
         copy_field("T", "Tu")
         copy_field("H2", "ft")
-        copy_common_fields()
+        copy_field("p_rgh", "p")
+        copy_common_fields(["alphat", "epsilon", "k", "nut", "T", "U"])
 
         foam_call("decomposePar")
         foam_call("XiFoam", parallel=True)
@@ -120,6 +115,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
 ################################################################################
 def foam_call(cmd, parallel=False, last=True):
     prog = cmd.split(" ")[0]
+    clean_file(".running_{}".format(prog), create_new=True)
     start_time = time.time()
     if logging:
         fout = open("log.{}".format(prog), "a")
@@ -146,9 +142,11 @@ def foam_call(cmd, parallel=False, last=True):
     if p.returncode != 0:
         print_log("Error while running {} after {:3.0f}h{:3.0f}m{:3.0f}s, check logs...".format(
             prog, h, m, s))
+        clean_file(".running_{}".format(prog), create_new=False)
         sys.exit(1)
     if logging and last:
         print_log("Finished {:23}|{:3.0f}h{:3.0f}m{:3.0f}s".format(prog, h, m, s))
+    clean_file(".running_{}".format(prog), create_new=False)
 
 
 def print_log(line):
@@ -166,9 +164,12 @@ def clean_folder(path, create_new=True):
         os.mkdir(path)
 
 
-def clean_file(path):
+def clean_file(path, create_new=False):
     if os.path.isfile(path):
         os.remove(path)
+    if create_new:
+        with open(path, "w") as of:
+            of.write("Running...")
 
 
 def change_line(path, key, value):
@@ -179,7 +180,7 @@ def change_line(path, key, value):
 
     for line in lines:
         if key in line:
-            new_content.append("{}      {};\n".format(key, value))
+            new_content.append("{}       {};\n".format(key, value))
         else:
             new_content.append(line)
 
@@ -199,11 +200,12 @@ def get_latest_time():
     return latest_time
 
 
-def set_cores():
-    "Sets correct core count in all decomposeParDict's"
-    change_line("snappyHexMesh/system/decomposeParDict", "numberOfSubdomains", cores)
-    change_line("rhoReactingBuoyantFoam/system/decomposeParDict", "numberOfSubdomains", cores)
-    change_line("XiFoam/system/decomposeParDict", "numberOfSubdomains", cores)
+def copy_case_files(case):
+    shutil.copytree("{}/system".format(case), "timeData/system")
+    shutil.copytree("{}/constant".format(case), "timeData/constant")
+    change_line("timeData/system/decomposeParDict", "numberOfSubdomains", cores)
+    if case != "snappyHexMesh":
+        shutil.copytree("{}/0".format(case), "timeData/0")
 
 
 def copy_field(a, b):
@@ -213,10 +215,11 @@ def copy_field(a, b):
     change_line("timeData/0/{}".format(b), "location", "0")
 
 
-def copy_common_fields():
-    for f in ["alphat", "epsilon", "k", "nut", "T", "U", "p"]:
+def copy_common_fields(fields):
+    for f in fields:
         shutil.copy("save/dispersion/{}".format(f), "timeData/0/{}".format(f))
         change_line("timeData/0/{}".format(f), "location", "0")
+
 
 def place_jet(s, l, d):
     stp = "surfaceTransformPoints"
@@ -248,25 +251,55 @@ def set_run(args, state):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="pyGDAXS: Gas Dispersion And Xplosion Solver")
-    parser.add_argument("-a", action="store_true",
+    pars = argparse.ArgumentParser(description="pyGDAXS: Gas Dispersion And Xplosion Solver")
+    excl = pars.add_mutually_exclusive_group()
+    pars.add_argument("-a", action="store_true",
         default=False, help="Run all: Clean, generate mesh and simulate")
-    parser.add_argument("-m", action="store_true",
+    pars.add_argument("-m", action="store_true",
         default=False, help="Generate new mesh")
-    parser.add_argument("-d", action="store_true",
+    pars.add_argument("-d", action="store_true",
         default=False, help="Simulate gas dispersion, requires mesh")
-    parser.add_argument("-x", action="store_true",
+    pars.add_argument("-x", action="store_true",
         default=False, help="Simulate gas explosion, requires mesh & dispersion")
-    parser.add_argument("-c", action="store_true",
+    pars.add_argument("-c", action="store_true",
         default=False, help="Clean mesh and solution folders and logs")
+    excl.add_argument("--info", action="store_true",
+        default=False, help="Continuously print courant number and time data.\
+        Requires a running simulation")
 
-    args = parser.parse_args()
+
+    args = pars.parse_args()
+    print_log("\n")
+
+    if args.info:
+        if os.path.isfile(".running_rhoReactingBuoyantFoam"):
+            lf = "rhoReactingBuoyantFoam"
+        elif os.path.isfile(".running_XiFoam"):
+            lf = "XiFoam"
+        else:
+            print("No running simulations found...")
+            sys.exit(0)
+
+        f = subprocess.Popen(
+            "tail -fn 200 log.{} | grep -E 'Courant Number mean|deltaT|Time = '".format(lf),
+            shell = True,
+            executable = "/bin/bash",
+            stdout=None,
+            stderr=None
+        )
+        while os.path.isfile(".running_{}".format(lf)):
+            time.sleep(5)
+        f.terminate()
+
+
     if args.a:
         set_run(args, True)
 
 
     if args.c:
-        print("Cleaning logfiles and solutions...")
+        print_log("---------------------------------")
+        print_log("Cleaning logfiles and solutions |")
+        clean_file("log.pyGDAXS")
         clean_folder("timeData", create_new=False)
         clean_folder("save", create_new=False)
         del_files = ["log.", ".eMesh"]

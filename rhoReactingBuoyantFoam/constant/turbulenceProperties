@@ -19,12 +19,18 @@ simulationType  RAS;
 
 RAS
 {
-  RASModel        kEpsilon;
-  // RASModel        buoyantKEpsilon ;
-  
+  // RASModel        kEpsilon;
+  RASModel        buoyantKEpsilon ;
+
+
   turbulence      on;
 
   printCoeffs     on;
+  //
+  // buoyantKEpsilonCoeffs
+  // {
+  //   Cg      0.85;
+  // }
 }
 
 // ************************************************************************* //

@@ -17,13 +17,14 @@ FoamFile
 
 dimensions      [0 2 -2 0 0 0 0];
 
-internalField   uniform 1.5;
-#include        "include/jetCoeffs"
+#include        "include/coeffs"
+internalField   $k0;
 
 boundaryField
 {
 
-  #include      "include/sidesZeroGradient"
+  #include      "include/sidesInletOutlet"
+
 
   ground
   {

@@ -21,13 +21,33 @@ internalField   uniform 0.434;
 boundaryField
 {
 
-  #include      "include/sidesGroundContainerZeroGradient"
+  "side.*"
+  {
+    type          inletOutlet;
+    inletValue    $internalField;
+  }
+
+  ground
+  {
+    type          zeroGradient;
+  }
+
+  container
+  {
+    type          zeroGradient;
+  }
+
+  base
+  {
+    type          zeroGradient;
+  }
 
   inlet
   {
     type          fixedValue;
     value         $internalField;
   }
+
 
 }
 

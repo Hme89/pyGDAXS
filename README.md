@@ -11,6 +11,11 @@ pyGDAXS
 python and stuff
 
 ## Checklist
-* Find bounding box and correct blockMeshDict in SHM
-* Set correct values for cores and location in mesh in pyGDAXS
-* 
+* blockMeshDict:
+* Find bounding box and correct x,y,z values
+* Set appropriate resolution. more "cubic" background mesh is better
+
+* rhoRBF:
+* Correct jet values for the appropriate jet orientation in pyGDAXS
+
+ 

@@ -17,45 +17,36 @@ FoamFile
 
 dimensions      [1 -1 -2 0 0 0 0];
 
-// internalField   uniform 101325;
-internalField   uniform 0;
+internalField   uniform 101325;
 
 boundaryField
 {
 
   "side.*"
   {
-    // type            fixedValue;
-    // type            zeroGradient;
-    type            fixedFluxPressure;
-    value           $internalField;
-    // type            totalPressure;
-    // p0              $internalField;
-
+    type            totalPressure;
+    p0              uniform 101325;
   }
 
   ground
   {
-    type            fixedFluxPressure;
-    value           $internalField;
-    }
+    type            zeroGradient;
+  }
 
   container
   {
-    type            fixedFluxPressure;
-    value           $internalField;
-  }
-
-  inlet
-  {
-    type            fixedFluxPressure;
-    value           internalField;
+    type            zeroGradient;
   }
 
   base
   {
-    type            fixedFluxPressure;
-    value           $internalField;
+    type            zeroGradient;
+  }
+
+  inlet
+  {
+    type            totalPressure;
+    p0              uniform 101327;
   }
 
 }

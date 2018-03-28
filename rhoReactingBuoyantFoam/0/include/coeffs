@@ -6,7 +6,19 @@
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 
-UJet              uniform (0 0 10);
+// Initial values
+U0                uniform (0 0 0);
+alphat0           uniform 0.24;
+epsilon0          uniform 0.24;
+k0                uniform 0.05;
+nut0              uniform 0.025;
+AIR0              uniform 1;
+H20               uniform 0;
+T0                uniform 300;
+
+
+// Jet coefficients
+UJet              uniform (0 0 0);
 alphatJet         uniform 0.24;
 epsilonJet        uniform 0.24;
 kjet              uniform 0.05;

@@ -37,14 +37,11 @@ writeCompression off;
 
 timeFormat      general;
 
-timePrecision   6;
-
 runTimeModifiable true;
 
 adjustTimeStep  yes;
 
-// Compile with support for dynamic dt?
-maxCo           0.4;
+maxCo           0.8;
 
 maxDeltaT       0.1;
 

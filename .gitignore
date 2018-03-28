@@ -8,3 +8,7 @@ timeData/*
 */constant/polyMesh
 */extendedFeatureEdgeMesh
 */constant/triSurface/*.eMesh
+*.zip
+*.gz
+*.xz
+*.tar

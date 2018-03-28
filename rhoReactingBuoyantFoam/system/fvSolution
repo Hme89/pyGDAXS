@@ -37,10 +37,6 @@ solvers
         relTol           0.0;
     }
 
-    ph_rgh
-    {
-        $p_rgh;
-    }
 
     "(U|h|k|epsilon)"
     {
