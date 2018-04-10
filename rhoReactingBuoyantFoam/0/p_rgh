@@ -33,7 +33,7 @@ boundaryField
     type            zeroGradient;
   }
 
-  container
+  "container.*"
   {
     type            zeroGradient;
   }
@@ -45,8 +45,9 @@ boundaryField
 
   inlet
   {
-    type            totalPressure;
-    p0              uniform 101327;
+    type            zeroGradient;
+    // type            totalPressure;
+    // p0              uniform 101327;
   }
 
 }

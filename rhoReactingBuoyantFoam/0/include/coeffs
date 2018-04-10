@@ -14,17 +14,20 @@ k0                uniform 0.05;
 nut0              uniform 0.025;
 AIR0              uniform 1;
 H20               uniform 0;
-T0                uniform 300;
+T0                uniform 293;
 
 
 // Jet coefficients
-UJet              uniform (0 0 0);
-alphatJet         uniform 0.24;
-epsilonJet        uniform 0.24;
-kjet              uniform 0.05;
-nutJet            uniform 0.025;
-AIRJet            uniform 0;
-H2Jet             uniform 1;
-TJet              uniform 280;
 
+AIRJet            uniform 0;
+alphatJet         uniform 0.24;
+nutJet            uniform 0.025;
+TJet              uniform 298;
+
+// Deprecated in favour of non-uniform BC
+//
+// UJet              uniform (0 -30 0);
+// H2Jet             uniform 1;
+// kjet              uniform 0.05;
+// epsilonJet        uniform 0.24;
 // ************************************************************************* //

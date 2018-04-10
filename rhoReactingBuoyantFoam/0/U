@@ -26,12 +26,12 @@ boundaryField
 
   "side.*"
   {
-    type            pressureInletOutletVelocity;
-    value           uniform (0 0 0);
+    type            zeroGradient;
+    // type            pressureInletOutletVelocity;
+    // value           uniform (0 0 0);
   }
 
-
-  container
+  "container.*"
   {
     type        noSlip;
   }
@@ -46,18 +46,11 @@ boundaryField
     type        noSlip;
   }
 
-
   inlet
   {
-    type            pressureInletVelocity;
-    value           uniform (0 0 0);
+    type        fixedValue;
+    value       $UJet;
   }
-
-  // inlet
-  // {
-  //   type        fixedValue;
-  //   value       $UJet;
-  // }
 
 }
 

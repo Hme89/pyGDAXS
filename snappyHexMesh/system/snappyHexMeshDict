@@ -28,21 +28,67 @@ addLayers       false;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {
-    container
-    {
-        type triSurfaceMesh;
-        file "container.obj";
-    }
-    inlet
-    {
-        type triSurfaceMesh;
-        file "inlet.obj";
-    }
-    base
-    {
-        type triSurfaceMesh;
-        file "base.obj";
-    }
+
+  container_left_wall
+  {
+    type triSurfaceMesh;
+    file "container_left_wall.stl";
+  }
+
+  container_right_wall
+  {
+    type triSurfaceMesh;
+    file "container_right_wall.stl";
+  }
+
+  container_back_wall
+  {
+    type triSurfaceMesh;
+    file "container_back_wall.stl";
+  }
+
+  container_top_wall
+  {
+    type triSurfaceMesh;
+    file "container_top_wall.stl";
+  }
+
+  container_backleft_seal
+  {
+    type triSurfaceMesh;
+    file "container_backleft_seal.stl";
+  }
+
+  container_backright_seal
+  {
+    type triSurfaceMesh;
+    file "container_backright_seal.stl";
+  }
+
+  container_topleft_seal
+  {
+    type triSurfaceMesh;
+    file "container_topleft_seal.stl";
+  }
+
+  container_topright_seal
+  {
+    type triSurfaceMesh;
+    file "container_topright_seal.stl";
+  }
+
+
+  inlet
+  {
+    type triSurfaceMesh;
+    file "inlet.obj";
+  }
+
+  base
+  {
+    type triSurfaceMesh;
+    file "base.obj";
+  }
 
 };
 
@@ -122,7 +168,7 @@ castellatedMeshControls
 
     refinementSurfaces
     {
-      container
+      "container_.*"
       {
           // Surface-wise min and max refinement level
           level (1 3);

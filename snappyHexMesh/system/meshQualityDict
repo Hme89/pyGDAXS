@@ -29,7 +29,7 @@ maxConcave 70;
 //- Minimum pyramid volume. Is absolute volume of cell pyramid.
 //  Set to a sensible fraction of the smallest cell volume expected.
 //  Set to very negative number (e.g. -1E30) to disable.
-minVol 1e-7;
+minVol 1e-8;
 
 //- Minimum quality of the tet formed by the face-centre
 //  and variable base point minimum decomposition triangles and
@@ -41,7 +41,7 @@ minVol 1e-7;
 minTetQuality 1e-3;
 
 //- Minimum face area. Set to <0 to disable.
-minArea 1e-7;
+minArea 1e-8;
 
 //- Minimum face twist. Set to <-1 to disable. dot product of face normal
 // and face centre triangles normal

@@ -32,10 +32,10 @@ boundaryField
     value       $internalField;
   }
 
-  container
+  "container.*"
   {
     type        fixedValue;
-    value       uniform 450;
+    value       $internalField;
   }
 
   inlet

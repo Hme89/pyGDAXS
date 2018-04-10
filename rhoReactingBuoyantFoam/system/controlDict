@@ -37,8 +37,6 @@ writeCompression off;
 
 timeFormat      general;
 
-timePrecision   6;
-
 runTimeModifiable true;
 
 adjustTimeStep  yes;

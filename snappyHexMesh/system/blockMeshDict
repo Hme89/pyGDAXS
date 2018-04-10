@@ -14,16 +14,16 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-x_low   -1.105;
-x_upp    3.455;
+x_low   -2.105;
+x_upp   4.455;
 
-y_low   -1.0;
-y_upp   3.46;
+y_low   0;
+y_upp   4.46;
 
-z_low   -1.105;
-z_upp   7.0;
+z_low   -0.105;
+z_upp   8.915;
 
-res 30;
+res 25;
 convertToMeters 1;
 
 vertices
@@ -42,7 +42,7 @@ vertices
 blocks
 (
   // hex (0 1 2 3 4 5 6 7) ($res $res $res) simpleGrading (1 1 1)
-  hex (0 1 2 3 4 5 6 7) (30 30 70) simpleGrading (1 1 1)
+  hex (0 1 2 3 4 5 6 7) (26 18 36) simpleGrading (1 1 1)
 );
 
 

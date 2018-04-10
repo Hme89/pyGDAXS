@@ -1,29 +1,39 @@
 #!/usr/bin/env python3
+"""
+pyGDAXS:
+A python script for gas dispersion and combustion simulations.
+
+Author: Henrik Hovrud
+"""
 import subprocess, argparse, shutil, time, sys, os
-from math import ceil
-import select
+import numpy as np
 
 # Config parameters
 ################################################################################
 # source_path   = "/opt/OpenFOAM/OpenFOAM-5.0/etc/bashrc"
 source_path = "/opt/openfoam5/etc/bashrc"
 
-# Path is relative to the main pyGDAXS folder.
-geometry_path = "geometries/hme_container2.obj"
+# Path is relative to the main pyGDAXS folder, can be a file or folder of files.
+# geometry_path = " geometries/hme_container.obj"
+geometry_path = "geometries/container_hme_parts"
 
 # Program params
 mpi_options   = "--map-by core --bind-to core --report-bindings"
 cores = 16
 logging = True
 
+
 # Default jet: 1m diameter and 1m long
 # Base at (0 0 0), pointing in z-direction
 # Scaling occurs before rotation, un-even x&z scaling will flatten/widen
-jet_scale = [0.4, 0.4, 0.4]
+# Scale [diameter , length]
+jet_scale = [0.25, 0.25]
 
 # Location of the base of jet geometry
-# jet_location = [1, 1, 0.5]
-jet_location = [100, 100, 100]
+jet_location = [1.175, 1.223, 0.434]
+
+# Jet params TODO
+jet_u = 10
 
 # Rotation [pitch, yaw] / rotation around [x-axis, y-axis] in degrees
 # x-axis = 90 -> downward, x-axis = 270 -> upward
@@ -31,10 +41,10 @@ jet_location = [100, 100, 100]
 jet_direction = [90, 0]
 
 # Location of ignition source, must be inside mesh (not geometry)
-ignition_location = [1.9, 1.9, 3]
+ignition_location = [1, 1, 3]
 
 # Solver run-time in seconds
-dispersion_time = 6
+dispersion_time = 15
 combustion_time = 1
 
 
@@ -55,8 +65,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         clean_folder("save", create_new=True)
         copy_case_files("snappyHexMesh")
         change_line("timeData/system/snappyHexMeshDict", "locationInMesh", in_mesh)
-        shutil.copy(geometry_path, "timeData/constant/triSurface/container.obj")
-        # shutil.copy(geometry_path, "timeData/constant/triSurface/container.stl")
+        copy_geometry(geometry_path)
         place_jet(jet_scale, jet_location, jet_direction)
 
         # foam_call("surfaceFeatureExtract")
@@ -78,6 +87,7 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         copy_case_files("rhoReactingBuoyantFoam")
         shutil.copytree("save/polyMesh", "timeData/constant/polyMesh")
         change_line("timeData/system/controlDict", "endTime  ", dispersion_time)
+        write_inlet_bc()
 
         foam_call("decomposePar")
         foam_call("rhoReactingBuoyantFoam", parallel=True)
@@ -125,7 +135,7 @@ def foam_call(cmd, parallel=False, last=True):
         cmd = "mpirun -np {} {} {} -parallel".format(cores, mpi_options, cmd)
     try:
         p = subprocess.Popen(
-            "cd {} && source {} && {}".format("timeData", source_path, cmd),
+            "source {} && cd timeData && {}".format( source_path, cmd),
             shell = True,
             executable = "/bin/bash",
             stdout = fout, stderr = fout
@@ -135,6 +145,7 @@ def foam_call(cmd, parallel=False, last=True):
         p.wait()
     except KeyboardInterrupt:
         print_log("\r{} canceled by user...".format(prog))
+        clean_file(".running_{}".format(prog), create_new=False)
         sys.exit(0)
     m, s = divmod(time.time() - start_time, 60)
     h, m = divmod(m, 60)
@@ -147,6 +158,95 @@ def foam_call(cmd, parallel=False, last=True):
     if logging and last:
         print_log("Finished {:23}|{:3.0f}h{:3.0f}m{:3.0f}s".format(prog, h, m, s))
     clean_file(".running_{}".format(prog), create_new=False)
+
+
+def write_inlet_bc():
+    change_line("timeData/system/controlDict", "writeFormat", "ascii")
+    foam_call("postProcess -func writeCellCentres")
+    change_line("timeData/system/controlDict", "writeFormat", "binary")
+    l = jet_scale[1]
+    jet_diameter = jet_scale[0]
+    x_r = jet_direction[0]*np.pi/180
+    y_r = jet_direction[1]*np.pi/180
+    centre = np.array([
+        jet_location[0] + l*np.sin(y_r)*np.cos(x_r),
+        jet_location[1] - l*np.sin(x_r),
+        jet_location[2] + l*np.cos(x_r)*np.cos(y_r)
+    ])
+
+    with open("timeData/0/C", "r") as infile:
+        line = infile.readline()
+        while "inlet" not in line:
+            line = infile.readline()
+
+        infile.readline();infile.readline();infile.readline()
+        n = int(infile.readline())
+        cell_centres = np.zeros([n,3])
+        infile.readline()
+
+        for i in range(n):
+            line = infile.readline().strip("()\n").split(" ")
+            cell_centres[i,0] = float(line[0])
+            cell_centres[i,1] = float(line[1])
+            cell_centres[i,2] = float(line[2])
+
+    normal_vector = np.array([
+        np.sin(jet_direction[1])*np.cos(jet_direction[0]),
+        np.sin(jet_direction[0]),
+        np.cos(jet_direction[0])*np.cos(jet_direction[1])])
+    assert sum(normal_vector**2)**0.5 - 1 < 1e-15
+
+    def distance_to_centre(vec):
+        return np.sum((centre - vec)**2)**0.5
+    assert distance_to_centre(jet_location) - l < 1e-15
+
+    def write_bc(field, func):
+        new_file = []
+        if field == "U":
+            values = np.zeros([n,3])
+        else:
+            values = np.zeros(n)
+        with open("timeData/0/{}".format(field), "r") as infile:
+            line = infile.readline()
+            while "inlet" not in line:
+                new_file.append(line)
+                line = infile.readline()
+
+            new_file +=  ["  inlet\n","  {\n" "    type    fixedValue;\n"]
+            if field == "U":
+                new_file.append("    value   nonuniform List<vector>\n")
+            else:
+                new_file.append("    value   nonuniform List<scalar>\n")
+            new_file.append("    {}\n".format(n))
+            new_file.append("    (\n")
+            for i in range(n):
+                values[i] = func( distance_to_centre(cell_centres[i]))
+            if field == "U":
+                new_file += ["    ({} {} {})\n".format(i[0],i[1],i[2]) for i in values ]
+            else:
+                new_file += ["    {}\n".format(i) for i in values ]
+            new_file.append("    )\n")
+            new_file.append("    ;\n")
+            new_file.append("  }\n")
+
+            while "}" not in line:
+                line = infile.readline()
+            new_file += infile.readlines()
+
+        with open("timeData/0/{}".format(field), "w") as outfile:
+            outfile.writelines(new_file)
+
+    x = l + 0
+    fields = {
+        "U":       lambda r: jet_u*jet_diameter/l * np.exp(-50*r**2/x**2),
+        "H2":      lambda r: 1,
+        "AIR":     lambda r: 0,
+        "k":       lambda r: 0.05,
+        "epsilon": lambda r: 0.24,
+    }
+    for field, eq in fields.items():
+        write_bc(field, eq)
+
 
 
 def print_log(line):
@@ -169,7 +269,7 @@ def clean_file(path, create_new=False):
         os.remove(path)
     if create_new:
         with open(path, "w") as of:
-            of.write("Running...")
+            of.write(" ")
 
 
 def change_line(path, key, value):
@@ -198,6 +298,15 @@ def get_latest_time():
         except ValueError:
             pass
     return latest_time
+
+
+def copy_geometry(path):
+    if os.path.isfile(path):
+        shutil.copy(path, "timeData/constant/triSurface/container.obj")
+    else:
+        for file_name in os.listdir(path):
+            file_path = os.path.join(path, file_name)
+            shutil.copy(file_path, "timeData/constant/triSurface")
 
 
 def copy_case_files(case):
@@ -231,7 +340,7 @@ def place_jet(s, l, d):
             "timeData/{}".format(obj))
 
         foam_call("{0} -scale '({1} {2} {3})' {4} {4}".format(
-            stp, s[0], s[1], s[2], obj), last = False)
+            stp, s[0], s[0], s[1], obj), last = False)
         foam_call("{0} -rollPitchYaw '({1} {2} 0)' {3} {3}".format(
             stp, d[0], d[1], obj), last = False)
         foam_call("{0} -translate '({1} {2} {3})' {4} {4}".format(
@@ -269,7 +378,7 @@ if __name__ == "__main__":
 
 
     args = pars.parse_args()
-    print_log("\n")
+    print_log("")
 
     if args.info:
         if os.path.isfile(".running_rhoReactingBuoyantFoam"):

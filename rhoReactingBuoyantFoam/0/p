@@ -33,7 +33,7 @@ boundaryField
     value           $internalField;
   }
 
-  container
+  "container.*"
   {
     type            calculated;
     value           $internalField;
