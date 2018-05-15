@@ -32,7 +32,7 @@ boundaryField
     type          zeroGradient;
   }
 
-  container
+  "container.*"
   {
     type          zeroGradient;
   }

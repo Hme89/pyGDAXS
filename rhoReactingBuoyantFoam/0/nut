@@ -17,14 +17,16 @@ FoamFile
 
 dimensions      [0 2 -1 0 0 0 0];
 
-#include        "include/coeffs"
-internalField   $nut0;
+internalField   uniform 0.025;
 
 boundaryField
 {
 
-  #include      "include/sidesInletOutlet"
-
+  "side.*"
+  {
+    type        calculated;
+    value       $internalField;
+  }
 
   ground
   {
@@ -41,7 +43,7 @@ boundaryField
   inlet
   {
     type        fixedValue;
-    value       $nutJet;
+    value       uniform 0.025;
   }
 
   base

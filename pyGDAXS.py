@@ -14,8 +14,8 @@ import numpy as np
 source_path = "/opt/openfoam5/etc/bashrc"
 
 # Path is relative to the main pyGDAXS folder, can be a file or folder of files.
-# geometry_path = " geometries/hme_container.obj"
 geometry_path = "geometries/container_hme_parts"
+# geometry_path = "geometries/testing.obj"
 
 # Program params
 mpi_options   = "--map-by core --bind-to core --report-bindings"
@@ -25,15 +25,16 @@ logging = True
 
 # Default jet: 1m diameter and 1m long
 # Base at (0 0 0), pointing in z-direction
-# Scaling occurs before rotation, un-even x&z scaling will flatten/widen
+# Scaling occurs before rotation
 # Scale [diameter , length]
-jet_scale = [0.25, 0.25]
+jet_scale = [0.25, 0.5]
 
 # Location of the base of jet geometry
-jet_location = [1.175, 1.223, 0.434]
+jet_location = [1.175, 1, 1]
 
-# Jet params TODO
-jet_u = 10
+# Jet params
+jet_u_max = 132.83
+jet_c_max = 0.0829
 
 # Rotation [pitch, yaw] / rotation around [x-axis, y-axis] in degrees
 # x-axis = 90 -> downward, x-axis = 270 -> upward
@@ -41,12 +42,11 @@ jet_u = 10
 jet_direction = [90, 0]
 
 # Location of ignition source, must be inside mesh (not geometry)
-ignition_location = [1, 1, 3]
+ignition_location = [1.175, 2, 1.1]
 
 # Solver run-time in seconds
-dispersion_time = 15
-combustion_time = 1
-
+dispersion_time = 5
+combustion_time = 3
 
 
 # Case setup
@@ -58,9 +58,8 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
     in_mesh = "({} {} {})".format(*ignition_location)
 
     if create_mesh:
-        print_log(
-        """---------------------------------\
-        \nMeshing phase                   |\
+        print_log("""
+        Meshing phase           |\
         \n---------------------------------""")
         clean_folder("save", create_new=True)
         copy_case_files("snappyHexMesh")
@@ -68,19 +67,19 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         copy_geometry(geometry_path)
         place_jet(jet_scale, jet_location, jet_direction)
 
-        # foam_call("surfaceFeatureExtract")
+        foam_call("surfaceFeatureExtract")
         foam_call("blockMesh")
         foam_call("decomposePar")
         foam_call("snappyHexMesh", parallel=True)
         foam_call("reconstructParMesh")
         foam_call("checkMesh")
         shutil.copytree("timeData/2/polyMesh", "save/polyMesh")
+        print_log("---------------------------------")
 
 
     if simulate_dispersion:
-        print_log(
-        """---------------------------------\
-        \nDispersion phase                |\
+        print_log("""
+        Dispersion phase        |\
         \n---------------------------------""")
         clean_folder("timeData", create_new=True)
         clean_folder("save/dispersion", create_new=False)
@@ -97,12 +96,13 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         change_line("timeData/system/controlDict", "writeFormat", "ascii")
         foam_call("foamFormatConvert -latestTime")
         shutil.copytree("timeData/{}".format(get_latest_time()), "save/dispersion")
+        print_log("---------------------------------")
+
 
 
     if simulate_explosion:
-        print_log(
-        """---------------------------------\
-        \nCombustion phase                |\
+        print_log("""
+        Combustion phase        |\
         \n---------------------------------""")
         clean_folder("timeData", create_new=True)
         copy_case_files("XiFoam")
@@ -113,11 +113,13 @@ def run_case(create_mesh, simulate_dispersion, simulate_explosion):
         copy_field("T", "Tu")
         copy_field("H2", "ft")
         copy_field("p_rgh", "p")
-        copy_common_fields(["alphat", "epsilon", "k", "nut", "T", "U"])
+        # copy_common_fields(["alphat", "epsilon", "k", "nut", "T", "U"])
+        copy_common_fields(["alphat", "k", "nut", "T", "U", "phi", "Qdot"])
 
         foam_call("decomposePar")
         foam_call("XiFoam", parallel=True)
         foam_call("reconstructPar")
+        print_log("---------------------------------")
 
 
 
@@ -168,11 +170,6 @@ def write_inlet_bc():
     jet_diameter = jet_scale[0]
     x_r = jet_direction[0]*np.pi/180
     y_r = jet_direction[1]*np.pi/180
-    centre = np.array([
-        jet_location[0] + l*np.sin(y_r)*np.cos(x_r),
-        jet_location[1] - l*np.sin(x_r),
-        jet_location[2] + l*np.cos(x_r)*np.cos(y_r)
-    ])
 
     with open("timeData/0/C", "r") as infile:
         line = infile.readline()
@@ -190,15 +187,15 @@ def write_inlet_bc():
             cell_centres[i,1] = float(line[1])
             cell_centres[i,2] = float(line[2])
 
+    centre = np.mean(cell_centres, axis=0)
     normal_vector = np.array([
-        np.sin(jet_direction[1])*np.cos(jet_direction[0]),
-        np.sin(jet_direction[0]),
-        np.cos(jet_direction[0])*np.cos(jet_direction[1])])
+        np.sin(y_r)*np.cos(x_r),
+        -np.sin(x_r),
+        np.cos(x_r)*np.cos(y_r)])
     assert sum(normal_vector**2)**0.5 - 1 < 1e-15
 
     def distance_to_centre(vec):
         return np.sum((centre - vec)**2)**0.5
-    assert distance_to_centre(jet_location) - l < 1e-15
 
     def write_bc(field, func):
         new_file = []
@@ -222,6 +219,7 @@ def write_inlet_bc():
             for i in range(n):
                 values[i] = func( distance_to_centre(cell_centres[i]))
             if field == "U":
+                values *= normal_vector
                 new_file += ["    ({} {} {})\n".format(i[0],i[1],i[2]) for i in values ]
             else:
                 new_file += ["    {}\n".format(i) for i in values ]
@@ -236,13 +234,13 @@ def write_inlet_bc():
         with open("timeData/0/{}".format(field), "w") as outfile:
             outfile.writelines(new_file)
 
-    x = l + 0
     fields = {
-        "U":       lambda r: jet_u*jet_diameter/l * np.exp(-50*r**2/x**2),
-        "H2":      lambda r: 1,
-        "AIR":     lambda r: 0,
-        "k":       lambda r: 0.05,
-        "epsilon": lambda r: 0.24,
+        "U":       lambda r: jet_u_max * np.exp(-50*r**2/jet_scale[1]**2),
+        # "H2":      lambda r: jet_c_max * np.exp(-50*r**2/jet_scale[1]**2),
+        # "AIR":     lambda r: 1 - np.exp(-50*r**2/jet_scale[1]**2),
+        # "N2":     lambda r: 1 - np.exp(-50*r**2/jet_scale[1]**2),
+        # "k":       lambda r: 0.05,
+        # "epsilon": lambda r: 0.24,
     }
     for field, eq in fields.items():
         write_bc(field, eq)
@@ -378,7 +376,8 @@ if __name__ == "__main__":
 
 
     args = pars.parse_args()
-    print_log("")
+    print_log("\nWelcome to pyGDAXS :)           |")
+    print_log("=================================")
 
     if args.info:
         if os.path.isfile(".running_rhoReactingBuoyantFoam"):
@@ -406,12 +405,12 @@ if __name__ == "__main__":
 
 
     if args.c:
+        print_log("\nCleaning logfiles and solutions |")
         print_log("---------------------------------")
-        print_log("Cleaning logfiles and solutions |")
         clean_file("log.pyGDAXS")
         clean_folder("timeData", create_new=False)
         clean_folder("save", create_new=False)
-        del_files = ["log.", ".eMesh"]
+        del_files = ["log.", ".eMesh", ".running"]
         del_folders = ["polyMesh", "extendedFeatureEdgeMesh", "processor"]
         for dirpath, dnames, fnames in os.walk("./"):
             for f in fnames:
@@ -448,3 +447,5 @@ if __name__ == "__main__":
 
     if any([args.m, args.d, args.x]):
         run_case(args.m, args.d, args.x)
+
+print_log("\n")

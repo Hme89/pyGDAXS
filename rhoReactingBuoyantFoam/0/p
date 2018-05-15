@@ -21,36 +21,24 @@ internalField   uniform 101325;
 
 boundaryField
 {
-  "side.*"
-  {
-    type            calculated;
-    value           $internalField;
-  }
-
-  ground
-  {
-    type            calculated;
-    value           $internalField;
-  }
-
-  "container.*"
-  {
-    type            calculated;
-    value           $internalField;
-  }
-
   inlet
   {
     type            calculated;
     value           $internalField;
   }
 
-  base
+    "side.*"
   {
     type            calculated;
     value           $internalField;
   }
 
+  "container.*|base|ground"
+  {
+    type            calculated;
+    value           $internalField;
+  }
 }
+
 
 // ************************************************************************* //

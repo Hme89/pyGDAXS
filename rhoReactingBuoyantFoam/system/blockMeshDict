@@ -1,0 +1,172 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Convert all lengths to cm
+convertToMeters 0.01;
+
+L    50;
+bs   20;
+be   30;
+
+H    50;
+bh   10;
+bll   0.5;
+blu  49.5;
+
+dep 25;
+
+vertices
+(
+    ( 0    0    0 ) // 0
+    ( $bs  0    0 ) // 1
+    ( $be  0    0 ) // 2
+    ( $L   0    0 ) // 3
+    ( $L   $bll 0 ) // 4
+    ( $L   $bh  0 ) // 5
+    ( $L   $blu 0 ) // 6
+    ( $L   $H   0 ) // 7
+    ( $be  $H   0 ) // 8
+    ( $bs  $H   0 ) // 9
+    ( 0    $H   0 ) // 10
+    ( 0    $blu 0 ) // 11
+    ( 0    $bh  0 ) // 12
+    ( 0    $bll 0 ) // 13
+
+    ( $bs  $bll 0 ) // 14
+    ( $be  $bll 0 ) // 15
+    ( $be  $bh  0 ) // 16
+    ( $be  $blu 0 ) // 17
+    ( $bs  $blu 0 ) // 18
+    ( $bs  $bh  0 ) // 19
+
+
+    ( 0    0    $dep ) // 20
+    ( $bs  0    $dep ) // 21
+    ( $be  0    $dep ) // 22
+    ( $L   0    $dep ) // 23
+    ( $L   $bll $dep ) // 24
+    ( $L   $bh  $dep ) // 25
+    ( $L   $blu $dep ) // 26
+    ( $L   $H   $dep ) // 27
+    ( $be  $H   $dep ) // 280.5
+    ( $bs  $H   $dep ) // 29
+    ( 0    $H   $dep ) // 30
+    ( 0    $blu $dep ) // 31
+    ( 0    $bh  $dep ) // 32
+    ( 0    $bll $dep ) // 33
+
+    ( $bs  $bll $dep ) // 34
+    ( $be  $bll $dep ) // 35
+    ( $be  $bh  $dep ) // 36
+    ( $be  $blu $dep ) // 37
+    ( $bs  $blu $dep ) // 38
+    ( $bs  $bh  $dep ) // 39
+);
+
+pre  15;
+aft  15;
+box   10;
+upp   15;
+low   5;
+blt   2;
+dep_res  15;
+
+blocks
+(
+  hex (0 1 14 13 20 21 34 33  ) ($pre $blt $dep_res) simpleGrading (0.25 1 1) // A
+  // hex (1 2 15 14 21 22 35 34  ) (10 5 1) simpleGrading (1 1 1) // B
+  hex (2 3 4 15 22 23 24 35   ) ($aft $blt $dep_res) simpleGrading (4 1 1) // C
+  hex (15 4 5 16 35 24 25 36  ) ($aft $low $dep_res) simpleGrading (4 1 1) // D
+  hex (16 5 6 17 36 25 26 37  ) ($aft $upp $dep_res) simpleGrading (4 1 1) // E
+  hex (17 6 7 8 37 26 27 28   ) ($aft $blt $dep_res) simpleGrading (4 1 1) // F
+  hex (18 17 8 9 38 37 28 29  ) ($box $blt $dep_res) simpleGrading (1 1 1) // G
+  hex (11 18 9 10 31 38 29 30 ) ($pre $blt $dep_res) simpleGrading (0.25 1 1) // H
+  hex (12 19 18 11 32 39 38 31) ($pre $upp $dep_res) simpleGrading (0.25 1 1) // I
+  hex (13 14 19 12 33 34 39 32) ($pre $low $dep_res) simpleGrading (0.25 1 1) // J
+  // hex (14 15 16 19 34 35 36 39) (10 5 1) simpleGrading (1 1 1) // K
+  hex (19 16 17 18 39 36 37 38) ($box $upp $dep_res) simpleGrading (1 1 1) // L
+);
+
+edges
+(
+);
+
+boundary
+(
+  inlet
+  {
+      type patch;
+      faces
+      (
+        (10 11 31 30)
+        (11 12 32 31)
+        (12 13 33 32)
+        (13 0 20 33)
+      );
+  }
+  outlet
+  {
+      type patch;
+      faces
+      (
+        (6 7 27 26)
+        (5 6 26 25)
+        (4 5 25 24)
+        (3 4 24 23)
+      );
+  }
+  walls
+  {
+      type wall;
+      faces
+      (
+          (9 10 30 29)
+          (8 9 29 28)
+          (7 8 28 27)
+          (2 3 23 22)
+          (0 1 21 20)
+          (1 14 34 21)
+          (14 19 39 34)
+          (19 16 36 39)
+          (16 15 35 36)
+          (15 2 22 35)
+          (20 21 34 33)
+          (22 23 24 35)
+          (24 25 36 35)
+          (25 26 37 36)
+          (26 27 28 37)
+          (28 29 38 37)
+          (29 30 31 38)
+          (31 32 39 38)
+          (32 33 34 39)
+          (36 37 38 39)
+
+          (0 13 14 1)
+          (2 15 4 3)
+          (15 16 5 4)
+          (16 17 6 5)
+          (17 8 7 6)
+          (18 9 8 17)
+          (10 9 18 11)
+          (11 18 19 12)
+          (12 19 14 13)
+          (19 18 17 16)
+      );
+  }
+);
+
+// ************************************************************************* //

@@ -17,14 +17,15 @@ FoamFile
 
 dimensions      [0 2 -3 0 0 0 0];
 
-#include        "include/coeffs"
-internalField   $epsilon0;
+internalField   uniform 0.24;
 
 boundaryField
 {
 
-  #include      "include/sidesInletOutlet"
-
+  "side.*"
+  {
+    type       zeroGradient;
+  }
 
   ground
   {
@@ -41,7 +42,7 @@ boundaryField
   inlet
   {
     type        fixedValue;
-    value       $epsilonJet;
+    value       uniform 0.24;
   }
 
   base

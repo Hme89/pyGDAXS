@@ -5,29 +5,39 @@
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      N2;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Initial values
-U0                uniform (0 0 0);
-alphat0           uniform 0.24;
-epsilon0          uniform 0.24;
-k0                uniform 0.05;
-nut0              uniform 0.025;
-AIR0              uniform 1;
-H20               uniform 0;
-T0                uniform 293;
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0.79;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 0.0;
+    }
+      "side.*"
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.79;
+        value           uniform 0.79;
+
+    }
+    "container.*|base|ground"
+    {
+        type            zeroGradient;
+    }
+}
 
 
-// Jet coefficients
-
-AIRJet            uniform 0;
-alphatJet         uniform 0.24;
-nutJet            uniform 0.025;
-TJet              uniform 298;
-
-// Deprecated in favour of non-uniform BC
-//
-// UJet              uniform (0 -30 0);
-// H2Jet             uniform 1;
-// kjet              uniform 0.05;
-// epsilonJet        uniform 0.24;
 // ************************************************************************* //

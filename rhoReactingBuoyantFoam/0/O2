@@ -5,11 +5,38 @@
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
-
-"side.*"
+FoamFile
 {
-  type        inletOutlet;
-  inletValue  $internalField;
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      O2;
 }
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0.21;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 0.0;
+    }
+      "side.*"
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.21;
+        value           uniform 0.21;
+    }
+    "container.*|base|ground"
+    {
+        type            zeroGradient;
+    }
+}
+
 
 // ************************************************************************* //

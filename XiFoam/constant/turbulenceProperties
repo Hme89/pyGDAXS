@@ -14,17 +14,30 @@ FoamFile
     object      turbulenceProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+simulationType  LES;
 
-simulationType  RAS;
-
-RAS
+LES
 {
-    RASModel        LaunderSharmaKE;
+    LESModel        kEqn;
+
+    delta           cubeRootVol;
 
     turbulence      on;
 
     printCoeffs     on;
+
 }
+
+// simulationType  RAS;
+//
+// RAS
+// {
+//     RASModel        LaunderSharmaKE;
+//
+//     turbulence      on;
+//
+//     printCoeffs     on;
+// }
 
 
 // ************************************************************************* //

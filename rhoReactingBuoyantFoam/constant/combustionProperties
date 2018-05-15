@@ -15,7 +15,17 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+// combustionModel  laminar<rhoChemistryCombustion>;
+// combustionModel  diffusion<rhoThermoCombustion,constGasHThermoPhysics>;
+// combustionModel  diffusion<rhoThermoCombustion,constGasHThermoPhysics>
+// combustionModel  diffusion<rhoThermoCombustion,gasEThermoPhysics>
+// combustionModel  PaSR<rhoChemistryCombustion>
+// combustionModel  diffusion<rhoThermoCombustion,gasHThermoPhysics>
 combustionModel  noCombustion<rhoThermoCombustion>;
-active  false;
+
+// active  true;
+// semiImplicit true;
+
+
 
 // ************************************************************************* //

@@ -15,22 +15,27 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-simulationType  RAS;
+simulationType  LES;
 
-RAS
+LES
 {
-  // RASModel        kEpsilon;
-  RASModel        buoyantKEpsilon ;
+    LESModel        kEqn;
 
+    delta           cubeRootVol;
 
-  turbulence      on;
+    turbulence      on;
 
-  printCoeffs     on;
-  //
-  // buoyantKEpsilonCoeffs
-  // {
-  //   Cg      0.85;
-  // }
+    printCoeffs     on;
+
 }
+
+// RAS
+// {
+//     RASModel        kEpsilon;
+//
+//     turbulence      on;
+//
+//     printCoeffs     on;
+// }
 
 // ************************************************************************* //

@@ -77,6 +77,17 @@ geometry
     file "container_topright_seal.stl";
   }
 
+  container_topback_seal
+  {
+    type triSurfaceMesh;
+    file "container_topback_seal.stl";
+  }
+  //
+  // container
+  // {
+  //   type triSurfaceMesh;
+  //   file "container.obj";
+  // }
 
   inlet
   {
@@ -117,7 +128,7 @@ castellatedMeshControls
     // few cells. This setting will cause refinement to stop if <= minimumRefine
     // are selected for refinement. Note: it will at least do one iteration
     // (unless the number of cells to refine is 0)
-    minRefinementCells 4;
+    minRefinementCells 1;
 
     // Allow a certain level of imbalance during refining
     // (since balancing is quite expensive)
@@ -260,7 +271,7 @@ snapControls
 {
     //- Number of patch smoothing iterations before finding correspondence
     //  to surface
-    nSmoothPatch 10;
+    nSmoothPatch 15;
 
     //- Relative distance for points to be attracted by surface feature point
     //  or edge. True distance is this factor times local
@@ -268,7 +279,7 @@ snapControls
     tolerance 2.0;
 
     //- Number of mesh displacement relaxation iterations.
-    nSolveIter 30;
+    nSolveIter 20;
 
     //- Maximum number of snapping relaxation iterations. Should stop
     //  before upon reaching a correct mesh.
@@ -278,14 +289,14 @@ snapControls
 
         //- Number of feature edge snapping iterations.
         //  Leave out altogether to disable.
-        nFeatureSnapIter 10;
+        nFeatureSnapIter 15;
 
         //- Detect (geometric only) features by sampling the surface
         //  (default=false).
         implicitFeatureSnap false;
 
         //- Use castellatedMeshControls::features (default = true)
-        explicitFeatureSnap false;
+        explicitFeatureSnap true;
 
         //- Detect points on multiple surfaces (only for explicitFeatureSnap)
         multiRegionFeatureSnap false;
@@ -386,7 +397,7 @@ meshQualityControls
     // Advanced
 
     //- Number of error distribution iterations
-    nSmoothScale 15;
+    nSmoothScale 20;
     //- Amount to scale back displacement at error points
     errorReduction 0.75;
 }
@@ -405,7 +416,7 @@ writeFlags
 
 // Merge tolerance. Is fraction of overall bounding box of initial mesh.
 // Note: the write tolerance needs to be higher than this.
-mergeTolerance 1e-6;
+mergeTolerance 1e-8;
 
 
 // ************************************************************************* //

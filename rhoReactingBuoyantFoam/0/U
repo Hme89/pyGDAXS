@@ -17,41 +17,28 @@ FoamFile
 
 dimensions      [0 1 -1 0 0 0 0];
 
-#include        "include/coeffs"
-internalField   $U0;
-
+internalField   uniform (0 0 0);
 
 boundaryField
 {
-
-  "side.*"
-  {
-    type            zeroGradient;
-    // type            pressureInletOutletVelocity;
-    // value           uniform (0 0 0);
-  }
-
-  "container.*"
-  {
-    type        noSlip;
-  }
-
-  ground
-  {
-    type        noSlip;
-  }
-
-  base
-  {
-    type        noSlip;
-  }
-
   inlet
   {
-    type        fixedValue;
-    value       $UJet;
+    type            fixedValue;
+    value           uniform (1 0 0);
   }
 
+    "side.*"
+  {
+    type            pressureInletOutletVelocity;
+    value           uniform (0 0 0);
+  }
+
+  "container.*|base|ground"
+
+  {
+    type      noSlip;
+  }
 }
+
 
 // ************************************************************************* //

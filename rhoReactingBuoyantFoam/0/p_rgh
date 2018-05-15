@@ -21,35 +21,28 @@ internalField   uniform 101325;
 
 boundaryField
 {
-
-  "side.*"
-  {
-    type            totalPressure;
-    p0              uniform 101325;
-  }
-
-  ground
-  {
-    type            zeroGradient;
-  }
-
-  "container.*"
-  {
-    type            zeroGradient;
-  }
-
-  base
-  {
-    type            zeroGradient;
-  }
-
   inlet
   {
     type            zeroGradient;
-    // type            totalPressure;
-    // p0              uniform 101327;
   }
 
+//   "side.*"
+// {
+//   type            totalPressure;
+//   p0              $internalField;
+// }
+
+    "side.*"
+  {
+    type            fixedValue;
+    value           $internalField;
+  }
+
+  "container.*|base|ground"
+  {
+    type            zeroGradient;
+  }
 }
+
 
 // ************************************************************************* //

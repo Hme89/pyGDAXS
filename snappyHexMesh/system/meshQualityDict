@@ -15,7 +15,7 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 //- Maximum non-orthogonality allowed. Set to 180 to disable.
-maxNonOrtho 65;
+maxNonOrtho 50;
 
 //- Max skewness allowed. Set to <0 to disable.
 maxBoundarySkewness 10;
@@ -24,12 +24,12 @@ maxInternalSkewness 2;
 //- Max concaveness allowed. Is angle (in degrees) below which concavity
 //  is allowed. 0 is straight face, <0 would be convex face.
 //  Set to 180 to disable.
-maxConcave 70;
+maxConcave 60;
 
 //- Minimum pyramid volume. Is absolute volume of cell pyramid.
 //  Set to a sensible fraction of the smallest cell volume expected.
 //  Set to very negative number (e.g. -1E30) to disable.
-minVol 1e-8;
+minVol 2e-7;
 
 //- Minimum quality of the tet formed by the face-centre
 //  and variable base point minimum decomposition triangles and
@@ -38,7 +38,7 @@ minVol 1e-8;
 //     <0 = inside out tet,
 //      0 = flat tet
 //      1 = regular tet
-minTetQuality 1e-3;
+minTetQuality 1e-2;
 
 //- Minimum face area. Set to <0 to disable.
 minArea 1e-8;
@@ -60,7 +60,7 @@ minDeterminant 0.01;
 minFaceWeight 0.05;
 
 //- Volume ratio of neighbouring cells (0 -> 1)
-minVolRatio 1e-3;
+minVolRatio 1e-2;
 
 //- Per triangle normal compared to average normal. Like face twist
 //  but now per (face-centre decomposition) triangle. Must be >0 for Fluent

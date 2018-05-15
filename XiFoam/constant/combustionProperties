@@ -23,8 +23,6 @@ Su              Su [0 1 -1 0 0 0 0] 0.434;
 
 SuModel         unstrained;
 
-equivalenceRatio equivalenceRatio [0 0 0 0 0 0 0] 1;
-
 sigmaExt        sigmaExt [0 0 -1 0 0 0 0] 100000;
 
 XiModel         transport;
@@ -71,11 +69,10 @@ ignitionSites
 (
     {
         location        (0 0 0.0005);
-        diameter        0.003;
+        diameter        0.3;
         start           0;
-        // duration        0.003;
-        duration        1e15;
-        strength        2;
+        duration        20;
+        strength        4;
     }
 );
 

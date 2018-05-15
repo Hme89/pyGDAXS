@@ -11,28 +11,38 @@ FoamFile
     format      ascii;
     class       volScalarField;
     location    "0";
-    object      AIR;
+    object      epsilon;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 0 0 0 0 0 0];
+dimensions      [0 2 -3 0 0 0 0];
 
-#include        "include/coeffs"
-internalField   $AIR0;
+internalField   uniform 0.24;
 
 boundaryField
 {
 
-  #include      "include/sidesInletOutlet"
+  "side.*"
+  {
+    type       zeroGradient;
+  }
 
   ground
   {
-    type        zeroGradient;
+    type        epsilonWallFunction;
+    value       $internalField;
   }
 
   "container.*"
   {
-    type        zeroGradient;
+    type        epsilonWallFunction;
+    value       $internalField;
+  }
+
+  inlet
+  {
+    type        fixedValue;
+    value       uniform 0.24;
   }
 
   base
@@ -40,11 +50,6 @@ boundaryField
     type        zeroGradient;
   }
 
-  inlet
-  {
-    type        fixedValue;
-    value       $AIRJet;
-  }
-
 }
+
 // ************************************************************************* //
